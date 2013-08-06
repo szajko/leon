@@ -12,6 +12,9 @@ import purescala.TypeTrees._
 import solvers._
 import solvers.z3._
 
+//what I added
+import ProceedSetOperators._
+
 import scala.collection.mutable.{Set => MutableSet}
 
 object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
@@ -68,7 +71,136 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
     for((funDef, vcs) <- vcs.toSeq.sortWith((a,b) => a._1 < b._1); vcInfo <- vcs if !interruptManager.isInterrupted()) {
       val funDef = vcInfo.funDef
       val vc = vcInfo.condition
+      
+      //handling the operators on sets
+      //println(vc)
+      
+      
+      
+      //eliminating lets operators
+      var collected : List[(Identifier, Expr)] = Nil
 
+      def letCollector(e : Expr) : Expr = e match {
+	case Let(i, e, b) => collected = (i, e) :: collected; b
+	case other => other
+      }
+
+      val withoutLets : Expr = simplePostTransform(letCollector)(vc)
+
+      val asEqualities : List[Expr] = collected.map {
+	case (i, e) => Equals(Variable(i), e)
+      }
+
+      val woletvc =  And(withoutLets :: asEqualities)
+      
+      //println(woletvc)
+      
+      //println("------------ez----------------------")
+      
+      
+      //collect the expression on sets
+      
+      //val myPrinter : Expr=>Expr = simplePreTransform(e => { println(e); e })
+
+      //val s = myPrinter(woletvc) // after this, s == someTree
+      //println(s)
+      
+      //val someExpression : Expr = ...
+      
+      var setConstraints : Set[Expr]= Set.empty 
+      
+      def collectSetOperator(t: Expr)  = t  match {
+        case SetEquals(l,r) => {
+          println("this is what we are SEARCHING!!!!!!!!!!!!!!!!!!!!!!")
+          println(t)
+          println(l.getType)
+          println(r.getType)
+          setConstraints += t; IntLiteral(0)
+        }
+        case ElementOfSet(_, _) => setConstraints += t; IntLiteral(0)
+        case SubsetOf(_, _) => setConstraints += t; IntLiteral(0)
+        case SetIntersection(_,_)=> setConstraints += t; IntLiteral(0)
+        case SetMin(_) => setConstraints += t; IntLiteral(0)
+        case SetMax(_) => setConstraints += t; IntLiteral(0)
+        case SetCardinality(_) => setConstraints += t; IntLiteral(0)
+	case SetUnion(_,_)=> setConstraints += t; IntLiteral(0)
+	case SetDifference(_, _) => setConstraints += t; IntLiteral(0)
+	case FiniteSet(_) => setConstraints += t; IntLiteral(0)
+        case _ => t
+      }
+      
+      val myPrinter : Expr=>Expr = simplePreTransform(e => { collectSetOperator(e) })
+      
+      val s = myPrinter(woletvc)
+      
+      //println(setConstraints)
+      
+      if (! setConstraints.isEmpty){
+        println(woletvc)
+      
+        println("------------collect set expr.----------------------")
+	println(setConstraints)
+	println("---------")
+      
+      
+      
+	val setCnsrt: Expr = proceedSets(setConstraints)
+	println(setCnsrt)
+      
+	println("itt a vege")
+      }
+      
+      
+      //I have all constraints on sets
+      //let eliminate If then else operators and so on....
+      //ERROR: it is missing right now
+      
+      //convert it to the formula, what I can process
+      //Handling set operators !!! 
+      
+      //val setExprMatcher : PartialFunction[Expr,Expr] = { 
+	//case e if e.getType == SetType(Int32Type) => e 
+//	case e if e match {
+//	  case SetMin(_) => e
+//	  case _ =>
+//	}
+//      }
+
+//      val allSetExpressions : List[Expr] = collect(setExprMatcher)(woletvc)
+      
+     // println(allSetExpressions)
+
+      //println("------------create a tree myself----------------------")
+      //Ez mukodik :-):-)
+      //val aid = FreshIdentifier("envaltozom").setType(Int32Type)
+      //val av = Variable(aid)
+
+      //val laid = FreshIdentifier("en").setType(Int32Type)
+      //val lav = Variable(aid)
+      //val finExpr = LessThan(av, lav)
+      
+      //println(finExpr)
+      
+      //create a set
+      
+      //val intSetType : TypeTree = SetType(Int32Type)
+
+      //val mySetName = FreshIdentifier("halmaz", true).setType(intSetType)   
+      // the "true" means it will always print with unique id
+
+      //val myset = FiniteSet(Seq(IntLiteral(0), IntLiteral(1)))
+      //val av = Variable(mySetName)
+      
+      //println(myset)
+      //constant set
+      //FiniteSet(Seq(IntLiteral(0), IntLiteral(1)))
+      
+      //FiniteSet(Seq.empty).setType(Int32Type)
+
+      
+      //println(av)
+      
+      
       reporter.info("Now considering '" + vcInfo.kind + "' VC for " + funDef.id + "...")
       reporter.debug("Verification condition (" + vcInfo.kind + ") for ==== " + funDef.id + " ====")
       reporter.debug(simplifyLets(vc))

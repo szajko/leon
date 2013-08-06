@@ -21,6 +21,7 @@ object Extractors {
       case MultisetToSet(t) => Some((t,MultisetToSet))
       case Car(t) => Some((t,Car))
       case Cdr(t) => Some((t,Cdr))
+      case SetComplement(s) => Some((s,SetComplement))
       case SetMin(s) => Some((s,SetMin))
       case SetMax(s) => Some((s,SetMax))
       case CaseClassSelector(cd, e, sel) => Some((e, CaseClassSelector(cd, _, sel)))
