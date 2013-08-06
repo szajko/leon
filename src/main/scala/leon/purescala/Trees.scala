@@ -483,11 +483,31 @@ object Trees {
   case class SubsetOf(set1: Expr, set2: Expr) extends Expr with FixedType {
     val fixedType = BooleanType
   }
-  case class SetIntersection(set1: Expr, set2: Expr) extends Expr 
-  case class SetUnion(set1: Expr, set2: Expr) extends Expr 
-  case class SetDifference(set1: Expr, set2: Expr) extends Expr 
-  case class SetMin(set: Expr) extends Expr
-  case class SetMax(set: Expr) extends Expr
+  case class SetIntersection(set1: Expr, set2: Expr) extends Expr with FixedType{
+    assert(set1.getType.isInstanceOf[SetType])
+    val fixedType = set1.getType
+  }
+  case class SetUnion(set1: Expr, set2: Expr) extends Expr with FixedType{
+    assert(set1.getType.isInstanceOf[SetType])
+    val fixedType = set1.getType
+  }
+  case class SetDifference(set1: Expr, set2: Expr) extends Expr with FixedType{
+    assert(set1.getType.isInstanceOf[SetType])
+    val fixedType = set1.getType
+  }
+  case class SetComplement(set: Expr) extends Expr with FixedType{
+    assert(set.getType.isInstanceOf[SetType])
+    val fixedType = set.getType
+  }
+  case class SetMin(set: Expr) extends Expr with FixedType{
+    assert(set.getType == SetType(Int32Type))
+    val fixedType = Int32Type
+  }
+  case class SetMax(set: Expr) extends Expr with FixedType{
+    assert(set.getType == SetType(Int32Type))
+    val fixedType = Int32Type
+  }
+    
 
   /* Multiset expressions */
   case class EmptyMultiset(baseType: TypeTree) extends Expr with Terminal
