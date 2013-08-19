@@ -34,7 +34,7 @@ object TestCase {
     !(
       Set.empty[Int].size == 1
     )
-  } holds
+  } holds 
   
   // | A | + | B | <= | A U B | + | A Intersec B |
   def prob2UNSAT(A : Set[Int], B : Set[Int]) : Boolean = {
@@ -42,6 +42,11 @@ object TestCase {
       A.size + B.size != (A ++ B).size + (A & B).size      
     )
   } holds
+  
+  def soSimpleSAT(A : Set[Int]) : Boolean = {
+    require(A == Set.empty[Int])
+    A.size == 0
+  } holds 
   
   //|A|=1 ^ |B|=1 ^ |C|=1 ^ |A Intersec B|=1 ^ |A Intersec C|=1 ^ |B Intersec C|=0
   def prob3UNSAT(A : Set[Int], B : Set[Int], C: Set[Int]) : Boolean = {
@@ -135,17 +140,18 @@ object TestCase {
   //AL19 U Set(x220) subseteq AL221 ^  ! x322 in AL221 ^| C16 U Set(x118) U Set(x220) U Set(x322)| != |C16| + 3
   def vc5UNSAT(x118: Int, x220: Int, x322: Int, C16: Set[Int], AL17: Set[Int], AL19: Set[Int], AL221: Set[Int]) : Boolean = {
     !(
-      C16.subsetOf(AL17) && !AL17.contains(x118) && ! (AL17 ++ Set(x118)).subsetOf(AL19) && 
+      C16.subsetOf(AL17) && !AL17.contains(x118) &&  (AL17 ++ Set(x118)).subsetOf(AL19) && 
         ! AL19.contains(x220) && (AL19 ++ Set(x220)).subsetOf(AL221) && ! AL221.contains(x322) &&
         (C16 ++ Set(x118) ++ Set(x220) ++ Set(x322)).size != C16.size + 3
     )
   } holds
   
+
   //C16 subseteq AL17 ^ AL17 U Set(x118) subseteq AL19 ^  ! x220 in AL19 ^  AL19 U Set(x220) subseteq AL221 ^ 
   //! x322 in AL221 ^| C16 U Set(x118) U Set(x220) U Set(x322)| != |C16| + 3
   def vc5bSAT(x118: Int, x220: Int, x322: Int, C16: Set[Int], AL17: Set[Int], AL19: Set[Int], AL221: Set[Int]) : Boolean = {
     !(
-      C16.subsetOf(AL17) && ! (AL17 ++ Set(x118)).subsetOf(AL19) && 
+      C16.subsetOf(AL17) && (AL17 ++ Set(x118)).subsetOf(AL19) && 
         ! AL19.contains(x220) && (AL19 ++ Set(x220)).subsetOf(AL221) && ! AL221.contains(x322) &&
         (C16 ++ Set(x118) ++ Set(x220) ++ Set(x322)).size != C16.size + 3
     )
@@ -155,10 +161,10 @@ object TestCase {
   //|AL221 Intersec Compl(AL19)| <= |C18| ^ |AL221 Intersec Compl(AL20)| > |C17|
   def vc6UNSAT(x16: Int, C17: Set[Int], C18: Set[Int], AL19: Set[Int], AL20: Set[Int], AL221: Set[Int]) : Boolean = {
     !(
-      C17.contains(x16) && C18 == C17 -- Set(x16) && (AL19 -- AL20).size <= 1 && 
-      (AL221 -- AL19).size <= C18.size  && (AL221 -- AL20).size > C17.size
-    )
-  } holds
+      C17.contains(x16) && C18 == C17 -- Set(x16) && (AL19 -- AL20).size == 1 && 
+      (AL221 -- AL19).size <= C18.size  && (AL221 -- AL20).size > C17.size 
+      )
+  } holds 
   
   //l116 != nul17 ^ l116 != ths18 ^ ths18 != nul17 ^ ths18 in L19 ^ ths18 in OC20 ^ l116 in L19 ^ 
   //l116 in OC20 ^ Oc7421 = OC20 ^ L7322 = S23 ^ OC20 subseteq Oc7421 ^ Oc6025 = Oc7421 ^ ListContent5926 = L7322 ^ 
@@ -179,6 +185,7 @@ object TestCase {
   } holds
   
   
+  
 /*  test("Formula vc6b"){
     unitTest("""l116 != nul17 ^ l116 != ths18 ^ ths18 != nul17 ^ ths18 in L19 ^ ths18 in OC20 ^ l116 in L19 ^ l116 in OC20 ^ Oc7421 = OC20^ L7322 = S23 ^ OC20 subseteq Oc7421 ^ Oc6025 = Oc7421 ^ ListContent5926  = L7322 ^ Oc7421 subseteq Oc6025 ^ tmp35727 in OB28 ^ tmp35727 in Oc6025 ^ Oc4529 = Oc6025 ^ Oc6025 subseteq Oc4529^ Oc4529 = OC20 ^ tmp35727 in S14230 ^ S24131 = S14230 Intersec Compl( Set(tmp35727)) ^ | Oc3032 Intersec Compl(Oc4529)| <= 1 ^ Oc4529 subseteq Oc3032 ^ | Oc3032 Intersec Compl(OC20)| <= 1 ^ Oc3032 subseteq Oc1633 ^ | Oc1633 Intersec Compl(Oc3032) | <= |S24131| ^ | Oc1633 Intersec Compl(OC20)| >= |S14230|""", true, "Formula vc6b")
   }
@@ -189,7 +196,7 @@ object TestCase {
   
   //Test the program with formulas containing min-max constraints
   
-  //empty set are solution
+/*  //empty set are solution
   //Min(A \ B) = Min(B \ A) ^ |A U B| = 2
   def mProb1SAT(A: Set[Int], B: Set[Int]) : Boolean = {
     !(
@@ -296,7 +303,7 @@ object TestCase {
     !(
       OldSet.size > 0 && !(!(NewSet == (OldSet | Set(large)) && large + 1 >= OldSet.max) || NewSet.max >= large)
     )
-  } holds
+  } holds*/
   
 /*           
   test("UneqPart_7"){

@@ -127,7 +127,7 @@ object ProceedSetOperators {
       
       println("sngCnstr: " + sngCnstr)
       println("substituteCnstr: " + substituteCnstr)
-      println("cardCnstr: " + sngCnstr)
+      println("cardCnstr: " + cardCnstrs)
       println("And(sideConstraints.toSeq: " + And(sideConstraints.toSeq))
       //println("sngCnstr: " + sngCnstr)
       //println("sngCnstr: " + sngCnstr)
@@ -196,6 +196,7 @@ object ProceedSetOperators {
        case SetComplement(SetComplement(l)) => rec(l)
        case SetComplement(SetUnion(l,r)) => rec(SetIntersection(SetComplement(l),SetComplement(r)))
        case SetComplement(SetIntersection(l,r)) => rec(SetUnion(SetComplement(l),SetComplement(r)))
+       case SetComplement(SetDifference(l,r)) => rec(SetComplement(SetIntersection(l, SetComplement(r))))
        case _ => t
      }
      //three relevant operators: card, min, max
@@ -632,9 +633,11 @@ object ProceedSetOperators {
 	  var typeOfVar : TypeTree = Int32Type
 	  if (str.startsWith("A") || str.startsWith("B") || str.startsWith("G") )
 	    typeOfVar = BooleanType	  
-	  val mySetName = FreshIdentifier(str, true).setType(Int32Type)
-	  BooleanType
+	  val mySetName = FreshIdentifier(str, true).setType(typeOfVar)
+	  //BooleanType
 	  val v : Expr= Variable(mySetName)
+	  if (str.startsWith("k#"))
+	    sideConstraints += GreaterEquals(v, IntLiteral(0)) 
 	  stringToExpr += (str -> v)
 	  //all k#.. >= 0 and M# and m# are between inf and -inf
 	  v
@@ -808,7 +811,7 @@ object ProceedSetOperators {
           //for each equivalency class
           var setOfBs: Set[String] = Set.empty
           for(jj<-0 to eNums-1){
-            val B: String = getName("B#E#"+compNum + "_" + jj + "#", reg._1, reg._2, serialNumber)
+            val B: String = getName("B#E#"+compNum + "#" + jj + "#", reg._1, reg._2, serialNumber)
             setOfBs += B
           }
           val card: Expr = getVar(getName("k#", reg._1, reg._2, serialNumber))
@@ -1233,7 +1236,7 @@ object ProceedSetOperators {
       if (isMinMax == true)
         intvals = generateSMTforMinMax()
         
-      cst += c1st
+      cst += c1st 
       cst += c2nd
       cst += c3rd
       cst += c4th
@@ -1241,6 +1244,16 @@ object ProceedSetOperators {
       cst += c6th
       cst += c7th
       cst += intvals
+      
+/*      println("orderEs: " + c1st)
+      println("mapEqualities: " + c2nd)
+      println("ensureConsistency: " + c3rd)
+      println("noMultipleSngs: " + c4th)
+      println("elementIsIn: " + c5th)
+      println("cardMinSngs: " + c6th)
+      println("contOnlyThose: " + c7th)
+      println("intvals: " + intvals)*/
+      
     }
   
 
