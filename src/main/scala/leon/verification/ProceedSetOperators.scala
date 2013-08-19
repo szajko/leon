@@ -162,13 +162,13 @@ object ProceedSetOperators {
 	  elementsOf += ElementOfSet(l, r)
 	  sngSet += l
 	}
-	case FiniteSet(s) => { // s : Seq[Expr] (Expr = int type)
+	case fs @ FiniteSet(s) => { // s : Seq[Expr] (Expr = int type)
 	  if (s.isEmpty) {
 	    isEmptySet = true
-	    sideConstraints += Equals(SetCardinality(FiniteSet(s)), IntLiteral(0))
+	    sideConstraints += Equals(SetCardinality(fs), IntLiteral(0))
 	  }
 	  else {
-	    constantSets += FiniteSet(s)
+	    constantSets += fs
 	    //cDep += Set(t)
 	  }
 	  cDep += Set(t)
@@ -359,11 +359,11 @@ object ProceedSetOperators {
     
     constantSets.foreach(a => 
       a match {
-	case FiniteSet(r) => {
+	case fs @ FiniteSet(r) => {
 	  var toAnd: Set[Expr] = Set.empty
 	  r.foreach(b=>{
 	    val ind: Int = getIndex(b)
-            val resRegion: (Set[String],Set[Expr]) = getRegionAST(("A#" +ind+"#") ,FiniteSet(r), ind)
+            val resRegion: (Set[String],Set[Expr]) = getRegionAST(("A#" +ind+"#") ,fs, ind)
 	    toAnd += Or(resRegion._1.map(b=>getVar(b)).toSeq) 
 	  })	    
 	  siConstraints += And(toAnd.toSeq)
