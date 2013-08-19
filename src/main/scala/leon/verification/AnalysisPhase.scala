@@ -67,7 +67,7 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
 
     for((funDef, vcs) <- vcs.toSeq.sortWith((a,b) => a._1 < b._1); vcInfo <- vcs if !vctx.shouldStop.get()) {
       val funDef = vcInfo.funDef
-      val vc = vcInfo.condition
+      var vc = vcInfo.condition
       
       //handling the operators on sets
       //println(vc)
@@ -131,21 +131,25 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       val s = myPrinter(woletvc)
       
       //println(setConstraints)
-      
+      var setCnsrt: Expr = BooleanLiteral(true)
       if (! setConstraints.isEmpty){
         println(woletvc)
       
         println("------------collect set expr.----------------------")
 	println(setConstraints)
+	
+      
+      
+      
+	setCnsrt = proceedSets(setConstraints)
 	println("---------")
-      
-      
-      
-	val setCnsrt: Expr = proceedSets(setConstraints)
+	
 	println(setCnsrt)
       
 	println("itt a vege")
       }
+      
+      vc = And(vc, setCnsrt)
       
       
       //I have all constraints on sets
