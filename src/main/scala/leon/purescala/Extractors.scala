@@ -89,7 +89,8 @@ object Extractors {
       case CaseClass(cd, args) => Some((args, CaseClass(cd, _)))
       case And(args) => Some((args, And.apply))
       case Or(args) => Some((args, Or.apply))
-      case FiniteSet(args) => Some((args, FiniteSet))
+      case fs @ FiniteSet(args) => Some((args, as => FiniteSet(as).setType(fs.getType)))
+      //case FiniteSet(args) => Some((args, FiniteSet))
       case FiniteMap(args) => {
         val subArgs = args.flatMap{case (k, v) => Seq(k, v)}
         val builder: (Seq[Expr]) => Expr = (as: Seq[Expr]) => {

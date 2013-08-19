@@ -144,12 +144,12 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
 	setCnsrt = proceedSets(setConstraints)
 	println("---------")
 	
-	println(setCnsrt)
+//	println(setCnsrt)
       
 	println("itt a vege")
       }
       
-      vc = And(vc, setCnsrt)
+      vc = Implies(setCnsrt, vc)
       
       
       //I have all constraints on sets
