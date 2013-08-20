@@ -120,6 +120,9 @@ object ProceedSetOperators {
       
       val sngCnstr : Expr = getTheSevenTypeCnstr()
       
+      println("This should not be empty: mClustToM " +       mClustToM)
+      println("This should not be empty: mToRegion " +       mToRegion)
+      
 //ready until here
       //collect sngs-s
       //var sngs : Set[Expr] = Set.empty
@@ -333,16 +336,22 @@ object ProceedSetOperators {
     mOrig.foreach(a=> {
       val resRegion: (Set[String],Set[Expr]) = getRegionAST("m#" ,a, -1)
       //siConstraints ++= resRegion._2
+      var toOr : Set[Expr] = Set.empty
       resRegion._1.foreach(b=> {
         siConstraints += LessEquals(SetMin(a), getVar(b))
+        toOr += Equals(SetMin(a), getVar(b))
       })
+      siConstraints += Or(toOr.toSeq)
     })
     MOrig.foreach(a=> {
       val resRegion: (Set[String],Set[Expr]) = getRegionAST("M#" ,a, -1)
       //siConstraints ++= resRegion._2
+      var toOr: Set[Expr] = Set.empty
       resRegion._1.foreach(b=> {
         siConstraints += GreaterEquals(SetMax(a), getVar(b))
+        toOr += Equals(SetMax(a), getVar(b))
       })
+      siConstraints += Or(toOr.toSeq)
     })
     
     elementsOf.foreach(a => 
@@ -1065,7 +1074,8 @@ object ProceedSetOperators {
       
       //---------------
       //Starts executing here
-      //The satisfiability of all min-max cluster can be handeled separately, as there is no two min-max cluster in the same component of the hypergraph
+      //The satisfiability of all min-max cluster can be handeled separately, 
+      //as there is no two min-max cluster in the same component of the hypergraph
       for(clust<-mClustToM){
         val minSet: Set[String] = clust._2._1
         val maxSet: Set[String] = clust._2._2
@@ -1232,10 +1242,7 @@ object ProceedSetOperators {
       val c6th : Expr = get6th(compNum, compInG, eNums) //cardMinSngs
       val c7th : Expr = get7th(compNum, compInG, eNums) //contOnlyThose
       //if isMinMax false //we are ready:-)
-      var intvals : Expr = BooleanLiteral(true)
-      if (isMinMax == true)
-        intvals = generateSMTforMinMax()
-        
+
       cst += c1st 
       cst += c2nd
       cst += c3rd
@@ -1243,7 +1250,6 @@ object ProceedSetOperators {
       cst += c5th
       cst += c6th
       cst += c7th
-      cst += intvals
       
 /*      println("orderEs: " + c1st)
       println("mapEqualities: " + c2nd)
@@ -1254,6 +1260,11 @@ object ProceedSetOperators {
       println("contOnlyThose: " + c7th)
       println("intvals: " + intvals)*/
       
+    }
+
+    if (isMinMax == true) { 
+      val intvals = generateSMTforMinMax()
+      cst += intvals
     }
   
 

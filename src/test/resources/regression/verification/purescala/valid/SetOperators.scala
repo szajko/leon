@@ -2,7 +2,7 @@ import leon.Annotations._
 import leon.Utils._
 
 object TestCase {
-  def prob1SAT(A : Set[Int], B : Set[Int], C: Set[Int]) : Boolean = {
+/*  def prob1SAT(A : Set[Int], B : Set[Int], C: Set[Int]) : Boolean = {
     !(
       (A ++ B).size <= (B ++ C).size
     )
@@ -182,7 +182,7 @@ object TestCase {
       Oc4529.subsetOf(Oc3032) && (Oc3032 -- OC20).size <= 1 && Oc3032.subsetOf(Oc1633) &&
       (Oc1633 -- Oc3032).size <= S24131.size && (Oc1633 -- OC20).size > S14230.size 
     )
-  } holds
+  } holds */
   
   
   
@@ -203,7 +203,7 @@ object TestCase {
       (A -- B).min == (B -- A).min && (A | B).size == 2
     )
   } holds
-  
+
   
   //min-max values are in the same cluster
   //Min(A \ B) = Min(B \ A) ^ |A \ B| = 2
@@ -221,7 +221,7 @@ object TestCase {
       B2.size == B3.size && A.size == 12 && A.min == 1 && A.max == 12 & B1.size > 0 &&
       B2.size > 0 && B3.size > 0
     )
-  } holds
+  } holds */
 
   // A => B as !A || B  
   //|Left|>0 ^ |Right| > 0 ^ !((Max(Left) < value ^ value < Min(Right)  ^ element< value) => 
@@ -233,7 +233,7 @@ object TestCase {
     )
   } holds
   
-  // A => B as !A || B  
+/*  // A => B as !A || B  
   //|Left|>0 ^ |Right| > 0 ^ ((Max(Left) < value ^ value < Min(Right)  ^ element< value) =>
   //(element in (Left U Value U Right) <=> element in Left)) ^ Set(value) = Value
   def mNegBinFind2SAT(value: Int, element: Int,  Left: Set[Int], Right: Set[Int], Valuee: Set[Int]) : Boolean = {
