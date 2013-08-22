@@ -196,11 +196,11 @@ object TestCase {
   
   //Test the program with formulas containing min-max constraints
   
-/*  //empty set are solution
+  //empty set are solution
   //Min(A \ B) = Min(B \ A) ^ |A U B| = 2
   def mProb1SAT(A: Set[Int], B: Set[Int]) : Boolean = {
     !(
-      (A -- B).min == (B -- A).min && (A | B).size == 2
+      (A -- B).min == (B -- A).min && (A ++ B).size == 2
     )
   } holds
 
@@ -217,11 +217,11 @@ object TestCase {
   //|A| = 12 ^ Min(A) = 1 ^ Max(A) = 12 ^ |B1|>0 ^ |B2|>0 ^ |B3|>0
   def mTriPart1SAT(A: Set[Int], B1: Set[Int], B2: Set[Int], B3: Set[Int]) : Boolean = {
     !(
-      A == (B1 | B2 | B3) && B1.min < B2.max && B2.min < B3.max && B1.size == B2.size && 
-      B2.size == B3.size && A.size == 12 && A.min == 1 && A.max == 12 & B1.size > 0 &&
+      A == (B1 ++ B2 ++ B3) && B1.min < B2.max && B2.min < B3.max && B1.size == B2.size && 
+      B2.size == B3.size && A.size == 12 && A.min == 1 && A.max == 12 && B1.size > 0 &&
       B2.size > 0 && B3.size > 0
     )
-  } holds */
+  } holds 
 
   // A => B as !A || B  
   //|Left|>0 ^ |Right| > 0 ^ !((Max(Left) < value ^ value < Min(Right)  ^ element< value) => 
@@ -229,17 +229,17 @@ object TestCase {
   def mBinFind2UNSAT(value: Int, element: Int,  Left: Set[Int], Right: Set[Int], Valuee: Set[Int]) : Boolean = {
     !(
       Left.size > 0 && Right.size > 0 && !(!( Left.max < value && value < Right.min && element < value) ||
-      ((Left | Valuee | Right).contains(element) == Left.contains(element) )) && Set(value) == Valuee
+      ((Left ++ Valuee ++ Right).contains(element) == Left.contains(element) )) && Set(value) == Valuee
     )
-  } holds
+  } holds 
   
-/*  // A => B as !A || B  
+  // A => B as !A || B  
   //|Left|>0 ^ |Right| > 0 ^ ((Max(Left) < value ^ value < Min(Right)  ^ element< value) =>
   //(element in (Left U Value U Right) <=> element in Left)) ^ Set(value) = Value
   def mNegBinFind2SAT(value: Int, element: Int,  Left: Set[Int], Right: Set[Int], Valuee: Set[Int]) : Boolean = {
     !(
       Left.size > 0 && Right.size > 0 && (!( Left.max < value && value < Right.min && element < value) ||
-      ((Left | Valuee | Right).contains(element) == Left.contains(element) )) && Set(value) == Valuee
+      ((Left ++ Valuee ++ Right).contains(element) == Left.contains(element) )) && Set(value) == Valuee
     )
   } holds
   
@@ -247,11 +247,26 @@ object TestCase {
   //|OldAbove|> 0 ^ |NewAbove| > 0 ^ !((OldAbove = Set() v pivot < Min(OldAbove)  ^ !(e <= pivot) ^
   //NewAbove = OldAbove U Set(e)) => pivot < Min(NewAbove))""", false, "Pivot_3")
   def mPivot3UNSAT(pivot: Int, e: Int,  OldAbove: Set[Int], NewAbove: Set[Int]) : Boolean = {
-    !(
-      OldAbove.size > 0 && NewAbove.size > 0 && !(!( OldAbove == Set.empty[Int] || pivot < OldAbove.min &&
-      !( e <= pivot ) && NewAbove == (OldAbove | Set(e))) ||
-       pivot < NewAbove.min)
+    require (
+      OldAbove.size > 0 && 
+      NewAbove.size > 0 && 
+      pivot < OldAbove.min &&
+      e > pivot &&
+      NewAbove == (OldAbove ++ Set(e))
     )
+    pivot < NewAbove.min
+  } holds
+  
+  // A => B as !A || B  
+  //|OldAbove|> 0 ^ |NewAbove| > 0 ^ !((OldAbove = Set() v pivot < Min(OldAbove)  ^ !(e <= pivot) ^
+  //NewAbove = OldAbove U Set(e)) => pivot < Min(NewAbove))""", false, "Pivot_3")
+  def newProblem(x: Int, y: Int, A: Set[Int], B: Set[Int]) : Boolean = {
+    require (
+      A.contains(x) && 
+      B.contains(y) && 
+      A.max < B.min
+    )
+      x < y
   } holds
   
   // A => B as !A || B  
@@ -260,7 +275,7 @@ object TestCase {
   def mNegPivot3SAT(pivot: Int, e: Int,  OldAbove: Set[Int], NewAbove: Set[Int]) : Boolean = {
     !(
       OldAbove.size > 0 && NewAbove.size > 0 && (!( OldAbove == Set.empty[Int] || pivot < OldAbove.min &&
-      !( e <= pivot ) && NewAbove == (OldAbove | Set(e))) ||
+      !( e <= pivot ) && NewAbove == (OldAbove ++ Set(e))) ||
        pivot < NewAbove.min)
     )
   } holds
@@ -269,7 +284,7 @@ object TestCase {
   //|OldSet| > 0 ^ !((NewSet = OldSet U Set(large) ^ large >= Max(OldSet)) => Max(NewSet) = large)
   def mAddSup4UNSAT(large: Int,  OldSet: Set[Int], NewSet: Set[Int]) : Boolean = {
     !(
-      OldSet.size > 0 && !(!(NewSet == (OldSet | Set(large)) && large >= OldSet.max) || NewSet.max == large)
+      OldSet.size > 0 && !(!(NewSet == (OldSet ++ Set(large)) && large >= OldSet.max) || NewSet.max == large)
     )
   } holds
   
@@ -277,7 +292,7 @@ object TestCase {
   //|OldSet| > 0 ^ ((NewSet = OldSet U Set(large) ^ large >= Max(OldSet)) => Max(NewSet) = large)
   def mNegAddSup4SAT(large: Int,  OldSet: Set[Int], NewSet: Set[Int]) : Boolean = {
     !(
-      OldSet.size > 0 && (!(NewSet == (OldSet | Set(large)) && large >= OldSet.max) || NewSet.max == large)
+      OldSet.size > 0 && (!(NewSet == (OldSet ++ Set(large)) && large >= OldSet.max) || NewSet.max == large)
     )
   } holds
   
@@ -285,7 +300,7 @@ object TestCase {
   //|OldSet| > 0 ^ !((NewSet = OldSet U Set(large) ^ large > Max(OldSet)) => Max(NewSet) >= Max(OldSet))
   def mAddSup5UNSAT(large: Int,  OldSet: Set[Int], NewSet: Set[Int]) : Boolean = {
     !(
-      OldSet.size > 0 && !(!(NewSet == (OldSet | Set(large)) && large >= OldSet.max) || NewSet.max >= OldSet.max)
+      OldSet.size > 0 && !(!(NewSet == (OldSet ++ Set(large)) && large >= OldSet.max) || NewSet.max >= OldSet.max)
     )
   } holds
   
@@ -293,17 +308,17 @@ object TestCase {
   //|OldSet| > 0 ^ ((NewSet = OldSet U Set(large) ^ large > Max(OldSet)) => Max(NewSet) >= Max(OldSet))
   def mNegAddSup5SAT(large: Int,  OldSet: Set[Int], NewSet: Set[Int]) : Boolean = {
     !(
-      OldSet.size > 0 && (!(NewSet == (OldSet | Set(large)) && large >= OldSet.max) || NewSet.max >= OldSet.max)
+      OldSet.size > 0 && (!(NewSet == (OldSet ++ Set(large)) && large >= OldSet.max) || NewSet.max >= OldSet.max)
     )
-  } holds
+  } holds 
   
   // A => B as !A || B 
   //|OldSet|>0 ^ !((NewSet = Oldset U Set(large) ^ large +1 >= Max(OldSet)) => Max(NewSet) = large)
   def mAddSupLS6SAT(large: Int,  OldSet: Set[Int], NewSet: Set[Int]) : Boolean = {
     !(
-      OldSet.size > 0 && !(!(NewSet == (OldSet | Set(large)) && large + 1 >= OldSet.max) || NewSet.max >= large)
+      OldSet.size > 0 && !(!(NewSet == (OldSet ++ Set(large)) && large + 1 >= OldSet.max) || NewSet.max == large)
     )
-  } holds*/
+  } holds
   
 /*           
   test("UneqPart_7"){

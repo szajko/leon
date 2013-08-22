@@ -616,12 +616,14 @@ object ProceedSetOperators {
   }
   
   def makeAddZ3AST(additional: Set[Expr]): Expr ={
-    val first: Expr = additional.head
-    var res: Expr = first
-    for(a<-additional if a!=first){
-      res = Plus(res, a)
-    }
-    res
+//    else {
+      val first: Expr = additional.head
+      var res: Expr = first
+      for(a<-additional if a!=first){
+        res = Plus(res, a)
+      }
+      res
+//    }
   }
   
   
@@ -693,7 +695,7 @@ object ProceedSetOperators {
 //minden k >= 0 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //if a variable is not mine, than it sould be between inf and -inf!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     var componentESetMap: Map[Set[Expr], Set[String]] = Map.empty
-    var regionToBMap: Map[(Set[String],Set[String]), Set[String]] = Map.empty
+    var regionToBMap: Map[(Set[Expr],Set[Expr]), Set[String]] = Map.empty
     
     //orderES - generates the first type of constraints
     def get1st(compNum: Int, compInG: Set[Expr] ,eNums: Int): Expr= {
@@ -826,13 +828,16 @@ object ProceedSetOperators {
           val card: Expr = getVar(getName("k#", reg._1, reg._2, serialNumber))
           setOfBs.foreach(b=>{
             val ib: Expr = getVar("i"+b)
+            println("1: " + ib)
             toAnd += Implies(Equals(getVar(b),BooleanLiteral(true)),Equals(ib,IntLiteral(1)))
             toAnd += Implies(Equals(getVar(b),BooleanLiteral(false)),Equals(ib,IntLiteral(0)))
           })
           //FIX ME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          //TTHIS WAS THE MISTAKE
           //setOfBs.map(b=>{"i"+b})
-          //regionToBMap += (reg->setOfBs)
+          regionToBMap += (reg->setOfBs)
           toAnd += LessEquals(addStringsAsVars(setOfBs.map(b=>{"i"+b})),card)
+          println("2: B-s " + setOfBs)
         }
       }
       And(toAnd.toSeq)
@@ -887,12 +892,14 @@ object ProceedSetOperators {
           val card: Expr = getVar(getName("k#", reg._1, reg._2, serialNumber))
           setOfBs.foreach(b=>{
             val ib: Expr = getVar("i"+b)
+            println("3: : " + ib)
             //println("7b: " +z3.mkITE(z3.mkEq(z3bool,z3.mkTrue), z3.mkEq(z3int,one),z3.mkEq(z3int,zero) ) )
             toAnd += Implies(Equals(getVar(b),BooleanLiteral(true)), Equals(ib,IntLiteral(1)))
             toAnd += Implies(Equals(getVar(b),BooleanLiteral(false)), Equals(ib,IntLiteral(0)))
           })
           //println("7: " + Eq(card,makeAddVars(setOfBs.map(b=>{"i"+b}))))
           toAnd += Equals(card,addStringsAsVars(setOfBs.map(b=>{"i"+b})))
+          println("4 : b-s" + setOfBs)
         }
         }
       }      
@@ -1067,6 +1074,7 @@ object ProceedSetOperators {
           toAndo += Implies(Equals(getVar(e),mM),bIs1)
         }
         val newInt :Expr = getVar("i"+mM)
+        //println("szerintem ez: " + newInt)
         toAndo += Implies(Or(toOr.toSeq),Equals(newInt,zero))
         toAndo += Implies(Not(Or(toOr.toSeq)),Equals(newInt,one))
         (newInt,And(toAnd.toSeq))
@@ -1116,6 +1124,7 @@ object ProceedSetOperators {
           max match {
             //if both min and max are defined for a Venn region
             case Some(x) =>{
+              println(" ezt a max-t talalta : " + x)
               usedMax += x
               val Z3Max = getVar(x)
               //every k>=0
@@ -1123,6 +1132,7 @@ object ProceedSetOperators {
               toAndo += GreaterEquals(Z3Card, zero)
               var setOfBs : Set[String] = Set.empty
               val foundAnyB = regionToBMap.find(tmp => tmp._1 == mToRegion(min))
+              println("ez a regionToBMap: " + regionToBMap)
               foundAnyB match{ 
                 case Some(tmpfound) => setOfBs = tmpfound._2
                 case None => ()
@@ -1144,7 +1154,9 @@ object ProceedSetOperators {
                 val isMaxSomeE: (Expr, Expr) = getIfEqualWithSomeB(setEs, Z3Max, x) //x=max, but max is optional 
                 var andThisSet : Set[Expr] = Set(GreaterThan(inf,Z3Max), GreaterThan(Z3Max,Z3Min), GreaterThan(Z3Min,mInf))
                 andThisSet ++= Set(cSet._2 ,isMinSomeE._2,isMaxSomeE._2)
+                println("1 : " + cSet._1)
                 val tmpSum = Plus(Plus(makeAddZ3AST(cSet._1), isMinSomeE._1),isMaxSomeE._1)
+                println("1 : " + setOfBs + " szuntet " + z3SetOfBs)
                 andThisSet += Equals(Z3Card,Plus(tmpSum, makeAddZ3AST(z3SetOfBs)))
                 Z3else = And(And(And(andThisSet.toSeq), mIsSomeO(Z3Min)), mIsSomeO(Z3Max))
                 Z3ifkIs1 = And(And(Z3ifkIs1,isMinSomeE._2),isMaxSomeE._2)
@@ -1158,6 +1170,8 @@ object ProceedSetOperators {
             case None => {
               toAndo += GreaterEquals(Z3Card, zero)
               var setOfBs : Set[String] = Set.empty
+              println("regionToBMap: " + regionToBMap + " ezt keresem benne " + min)
+              println("mToRegion: " + mToRegion)
               val foundAnyB = regionToBMap.find(tmp => tmp._1 == mToRegion(min))
               foundAnyB match{ 
                 case Some(tmpfound) => setOfBs = tmpfound._2
@@ -1169,6 +1183,7 @@ object ProceedSetOperators {
               if (setEs != Set.empty) {
                 val isMinSomeE = getIfEqualWithSomeB(setEs, Z3Min, min)
                 val mytAnd = And(Z3ifNot0, isMinSomeE._2)
+                println("4 : " + z3SetOfBs)
                 Z3ifNot0 = And(mytAnd, GreaterEquals(Z3Card,Plus(isMinSomeE._1, makeAddZ3AST(z3SetOfBs))))
               }
               //if k= 0 => min = Inf, else: (m=o1 v m= o2...) && k>0 
@@ -1199,6 +1214,7 @@ object ProceedSetOperators {
           var Z3ifNot0: Expr = GreaterThan(Z3Card,zero)
           if (setEs != Set.empty){
             val isMaxSomeE = getIfEqualWithSomeB(setEs, Z3Max, max)
+            println("5 : " + z3SetOfBs)
             Z3ifNot0 = And(And(Z3ifNot0,isMaxSomeE._2), GreaterEquals(Z3Card,Plus(isMaxSomeE._1, makeAddZ3AST(z3SetOfBs))))
           }      
             
