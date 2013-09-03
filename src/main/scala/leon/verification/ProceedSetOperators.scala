@@ -28,8 +28,8 @@ object ProceedSetOperators {
     // Boolean variables
     var isEmptySet: Boolean = false
     val myEmptySet = Variable(FreshIdentifier("EmptySet", true).setType(SetType(Int32Type)))
-    val inf : Expr = IntLiteral(200)
-    val mInf: Expr = IntLiteral(-200)
+    var inf : Expr = IntLiteral(0)
+    var mInf: Expr = IntLiteral(0)
     var isMinMax: Boolean = false
     
     //collect Dependencies
@@ -55,6 +55,8 @@ object ProceedSetOperators {
     var mClustToM: Map[Set[Expr], (Set[String],Set[String])] = Map.empty
     //m.. or M.. -> (set containing, set not conctaining)
     var mToRegion: Map[String, (Set[Expr],Set[Expr])] = Map.empty
+    var regionToBMap: Map[(Set[Expr],Set[Expr]), Set[String]] = Map.empty
+    var serialNumberToNumOsMap : Map[Int, Int] = Map.empty
 
     
     //HyperGraph
@@ -87,14 +89,15 @@ object ProceedSetOperators {
       alfaToVarMap = Map.empty
       mClustToM = Map.empty
       mToRegion = Map.empty
-
+      regionToBMap = Map.empty
+      inf = getVar("inf")
+      mInf= getVar("minusInf")
 
       //lift all constant sets that are not variables
       //and eliminate the following operators:
       //seteq, subset, in, constantSets
       e.foreach(tp => eliminateOperators(tp))
-      println("-- sideConstraints -- ")
-      println(sideConstraints)
+      println("-- sideConstraints -- " + sideConstraints)
       sngArray = sngSet.toArray
       val  newE : Set[Expr] = e | sideConstraints
       
@@ -110,34 +113,32 @@ object ProceedSetOperators {
       globalClusts = clusters._1
       println("--- clusters----" + globalClusts.toSet)
       globalMinMaxIndicies = clusters._2
+      println("Min-max indeces of the clusters: " + globalMinMaxIndicies)
       //produces finalClusters
       clsToArray(clusters._1)
-      println("sngArray !!!!!! :" + sngArray.toSet)
+      println("Singletons Array:" + sngArray.toSet)
       
       val cardCnstrs: Expr = G.getEqualities("k#", Set.empty)
-      println("cardCnstrs:\n" + cardCnstrs )
+      println("Cardinality constraints:\n" + cardCnstrs )
       val substituteCnstr : Expr = subsAbsMinMax()
       
       val sngCnstr : Expr = getTheSevenTypeCnstr()
       
-      println("This should not be empty: mClustToM " +       mClustToM)
-      println("This should not be empty: mToRegion " +       mToRegion)
+      //println("This should not be empty: mClustToM " +       mClustToM)
+      //println("This should not be empty: mToRegion " +       mToRegion)
       
-//ready until here
       //collect sngs-s
       //var sngs : Set[Expr] = Set.empty
       //bridges.foreach{a => sngs += a._2}
       
-      println("sngCnstr: " + sngCnstr)
+      //println("sngCnstr: " + sngCnstr)
       println("substituteCnstr: " + substituteCnstr)
       println("cardCnstr: " + cardCnstrs)
-      println("And(sideConstraints.toSeq: " + And(sideConstraints.toSeq))
-      //println("sngCnstr: " + sngCnstr)
-      //println("sngCnstr: " + sngCnstr)
-      //println("sngCnstr: " + sngCnstr)
-      //println("sngCnstr: " + sngCnstr)
+      //println("And(sideConstraints.toSeq: " + And(sideConstraints.toSeq))
       
-      val allcnsrt : Set[Expr] = Set(sngCnstr, substituteCnstr, cardCnstrs, And(sideConstraints.toSeq))
+      val infCnstr : Expr = And(GreaterEquals(inf, IntLiteral(1000)),LessEquals(mInf, IntLiteral(-1000)))
+      
+      val allcnsrt : Set[Expr] = Set(sngCnstr, substituteCnstr, cardCnstrs, And(sideConstraints.toSeq), infCnstr)
  
       And(allcnsrt.toSeq)
      }
@@ -250,7 +251,7 @@ object ProceedSetOperators {
      //end of deMorganCollectDep
   }
   
-  //select dependencies, which contain all dependencies
+  //select dependencies, which contains all dependencies
   def filterNecessaryDep(dep: Set[Set[Expr]]) : Set[Set[Expr]] = {
       dep.filter(s1 => !dep.exists(s2 => (s1!=s2 && s1.subsetOf(s2))))
   }
@@ -401,7 +402,7 @@ object ProceedSetOperators {
     
   
    //return an AST[Int] substituting a cardinality or min-max values of a region
-  //if bothe isCard and isMin are true, it returns cardinality names for min/max constraints!!!
+  //if bothe isCard and isMin are true, it returns cardinality names for min/max constraints!
   def getRegionAST(st: String, region: Expr, xName: Int) :(Set[String],Set[Expr]) ={
     var res: Set[(Set[Expr],Set[Expr])] = Set.empty
     var sideCnstrs: Set[Expr] = Set.empty
@@ -423,9 +424,12 @@ object ProceedSetOperators {
       case SetUnion(l, r) => traverseTree(l); traverseTree(r)
       case SetIntersection(l, r) => res += getVariables(t)
       //case Setminus(l, r) => this is already eliminated
-      //case Compl(Setvar(l)) => res += Pair(Set.empty, Set(l)) //complement of more than one element is also eliminated
-      //case Compl(Myset(l)) => warn("UNDEFINED input format, it is not possible to have a region with only complements variables.")
-      //case Compl(Setvar(s)) => warn("UNDEFINED input format, it is not possible to have a region with only complements variables.")
+      //case Compl(Setvar(l)) => res += Pair(Set.empty, Set(l)) 
+      //complement of more than one element is also eliminated
+      //case Compl(Myset(l)) => warn("UNDEFINED input format, 
+      //it is not possible to have a region with only complements variables.")
+      //case Compl(Setvar(s)) => warn("UNDEFINED input format, 
+      //it is not possible to have a region with only complements variables.")
       case _ => res += Pair(Set(t), Set.empty)
     }
     
@@ -467,12 +471,12 @@ object ProceedSetOperators {
       //this might be only the empty sets, ie.:B\B = B intersec B...
       //we should handle the empty region with additional constraints
       if ((ii._1 & ii._2) != Set.empty){
-        println("ERRE FIGYELJ MÉG !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-/*        toSum += (st +"_empty")
-        if (st == "k#") sideCnstrs += Eq(Var(st +"_empty"),Const(0))
-        else if (st != "m#"&& st != "M#") sideCnstrs += Eqbool(VarBool(st +"_empty"),Bool(false))
-        else globalEmptyDefined = true*/
-        sys.error("This should not be empty!")
+        //toSum += (st +"_empty")
+        //if (st == "k#") sideCnstrs += Eq(Var(st +"_empty"),Const(0))
+        //else if (st != "m#"&& st != "M#") sideCnstrs += Eqbool(VarBool(st +"_empty"),Bool(false))
+        //else globalEmptyDefined = true
+        sys.error("The program cannot handle the complement of the union of some sets," +
+                  " each region should contain at least one set.")
       }
       else toSum ++= getRegName(st, ii._1, ii._2, j, globalClusts(j))
     }
@@ -691,11 +695,8 @@ object ProceedSetOperators {
 //-----------------------------------------------------------------
   def getTheSevenTypeCnstr(): Expr = {
     var eArray : Array[Expr] = Array.empty
-//nagyon fontos, hogy minden változó -inf és inf között legyen!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//minden k >= 0 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//if a variable is not mine, than it sould be between inf and -inf!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//nagyon fontos, hogy minden változó -inf és inf között legyen FIXME
     var componentESetMap: Map[Set[Expr], Set[String]] = Map.empty
-    var regionToBMap: Map[(Set[Expr],Set[Expr]), Set[String]] = Map.empty
     
     //orderES - generates the first type of constraints
     def get1st(compNum: Int, compInG: Set[Expr] ,eNums: Int): Expr= {
@@ -828,16 +829,12 @@ object ProceedSetOperators {
           val card: Expr = getVar(getName("k#", reg._1, reg._2, serialNumber))
           setOfBs.foreach(b=>{
             val ib: Expr = getVar("i"+b)
-            println("1: " + ib)
             toAnd += Implies(Equals(getVar(b),BooleanLiteral(true)),Equals(ib,IntLiteral(1)))
             toAnd += Implies(Equals(getVar(b),BooleanLiteral(false)),Equals(ib,IntLiteral(0)))
           })
-          //FIX ME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          //TTHIS WAS THE MISTAKE
-          //setOfBs.map(b=>{"i"+b})
+          //this caused a mistake-> corrigated
           regionToBMap += (reg->setOfBs)
           toAnd += LessEquals(addStringsAsVars(setOfBs.map(b=>{"i"+b})),card)
-          println("2: B-s " + setOfBs)
         }
       }
       And(toAnd.toSeq)
@@ -892,14 +889,12 @@ object ProceedSetOperators {
           val card: Expr = getVar(getName("k#", reg._1, reg._2, serialNumber))
           setOfBs.foreach(b=>{
             val ib: Expr = getVar("i"+b)
-            println("3: : " + ib)
             //println("7b: " +z3.mkITE(z3.mkEq(z3bool,z3.mkTrue), z3.mkEq(z3int,one),z3.mkEq(z3int,zero) ) )
             toAnd += Implies(Equals(getVar(b),BooleanLiteral(true)), Equals(ib,IntLiteral(1)))
             toAnd += Implies(Equals(getVar(b),BooleanLiteral(false)), Equals(ib,IntLiteral(0)))
           })
           //println("7: " + Eq(card,makeAddVars(setOfBs.map(b=>{"i"+b}))))
           toAnd += Equals(card,addStringsAsVars(setOfBs.map(b=>{"i"+b})))
-          println("4 : b-s" + setOfBs)
         }
         }
       }      
@@ -1085,6 +1080,11 @@ object ProceedSetOperators {
       //The satisfiability of all min-max cluster can be handeled separately, 
       //as there is no two min-max cluster in the same component of the hypergraph
       for(clust<-mClustToM){
+        //set serialNumber to the index of the corresponding minMaxCluster
+        globalMinMaxIndicies.foreach(minMaxIndex =>{ 
+          if ((clust._1).subsetOf(globalClusts(minMaxIndex)))
+            serialNumber = minMaxIndex
+        })
         val minSet: Set[String] = clust._2._1
         val maxSet: Set[String] = clust._2._2
         val numMinMax: Int = (minSet | maxSet).size
@@ -1096,8 +1096,9 @@ object ProceedSetOperators {
           }
           case None => () //there is no defined ES for that set
         }
-        //number of Os generated fot this cluster
+        //number of Os generated for this cluster
         val numOs : Int = numMinMax + setEs.size
+        serialNumberToNumOsMap += (serialNumber -> numOs)
         
         setOs = Set.empty
         intToCs = Map.empty
@@ -1124,7 +1125,6 @@ object ProceedSetOperators {
           max match {
             //if both min and max are defined for a Venn region
             case Some(x) =>{
-              println(" ezt a max-t talalta : " + x)
               usedMax += x
               val Z3Max = getVar(x)
               //every k>=0
@@ -1132,7 +1132,6 @@ object ProceedSetOperators {
               toAndo += GreaterEquals(Z3Card, zero)
               var setOfBs : Set[String] = Set.empty
               val foundAnyB = regionToBMap.find(tmp => tmp._1 == mToRegion(min))
-              println("ez a regionToBMap: " + regionToBMap)
               foundAnyB match{ 
                 case Some(tmpfound) => setOfBs = tmpfound._2
                 case None => ()
@@ -1154,9 +1153,7 @@ object ProceedSetOperators {
                 val isMaxSomeE: (Expr, Expr) = getIfEqualWithSomeB(setEs, Z3Max, x) //x=max, but max is optional 
                 var andThisSet : Set[Expr] = Set(GreaterThan(inf,Z3Max), GreaterThan(Z3Max,Z3Min), GreaterThan(Z3Min,mInf))
                 andThisSet ++= Set(cSet._2 ,isMinSomeE._2,isMaxSomeE._2)
-                println("1 : " + cSet._1)
                 val tmpSum = Plus(Plus(makeAddZ3AST(cSet._1), isMinSomeE._1),isMaxSomeE._1)
-                println("1 : " + setOfBs + " szuntet " + z3SetOfBs)
                 andThisSet += Equals(Z3Card,Plus(tmpSum, makeAddZ3AST(z3SetOfBs)))
                 Z3else = And(And(And(andThisSet.toSeq), mIsSomeO(Z3Min)), mIsSomeO(Z3Max))
                 Z3ifkIs1 = And(And(Z3ifkIs1,isMinSomeE._2),isMaxSomeE._2)
@@ -1170,8 +1167,6 @@ object ProceedSetOperators {
             case None => {
               toAndo += GreaterEquals(Z3Card, zero)
               var setOfBs : Set[String] = Set.empty
-              println("regionToBMap: " + regionToBMap + " ezt keresem benne " + min)
-              println("mToRegion: " + mToRegion)
               val foundAnyB = regionToBMap.find(tmp => tmp._1 == mToRegion(min))
               foundAnyB match{ 
                 case Some(tmpfound) => setOfBs = tmpfound._2
@@ -1183,7 +1178,6 @@ object ProceedSetOperators {
               if (setEs != Set.empty) {
                 val isMinSomeE = getIfEqualWithSomeB(setEs, Z3Min, min)
                 val mytAnd = And(Z3ifNot0, isMinSomeE._2)
-                println("4 : " + z3SetOfBs)
                 Z3ifNot0 = And(mytAnd, GreaterEquals(Z3Card,Plus(isMinSomeE._1, makeAddZ3AST(z3SetOfBs))))
               }
               //if k= 0 => min = Inf, else: (m=o1 v m= o2...) && k>0 
@@ -1214,7 +1208,6 @@ object ProceedSetOperators {
           var Z3ifNot0: Expr = GreaterThan(Z3Card,zero)
           if (setEs != Set.empty){
             val isMaxSomeE = getIfEqualWithSomeB(setEs, Z3Max, max)
-            println("5 : " + z3SetOfBs)
             Z3ifNot0 = And(And(Z3ifNot0,isMaxSomeE._2), GreaterEquals(Z3Card,Plus(isMaxSomeE._1, makeAddZ3AST(z3SetOfBs))))
           }      
             
@@ -1286,5 +1279,357 @@ object ProceedSetOperators {
 
     And(cst.toSeq)
   }
-  // Add hozzá, hogy minden k nagyobb 0 éa nyilván, hogy minden inf és -inf között legyen
+  
+  //-------------------------------------------------------------------
+  //build sets as counterexample 
+  def getCounterExample(counterexample : Map[Identifier,Expr]) {
+    //build a map for the needed sets
+    var solu : Map[Expr, Set[Int]] = Map.empty
+    var usedElems : Set[Int] = Set.empty
+    var readySets : Set[Expr] = Set.empty
+    var readyClusterIndices: Set[Int] = Set.empty
+    var globalSngSet : Set[Int] = Set.empty
+    
+    
+    //insert singletons into the map
+    def InsertSNGs() {
+      //     var regionToBMap: Map[(Set[Expr],Set[Expr]), Set[String]] = Map.empty
+      for (regToB <- regionToBMap) {
+        for(b<- regToB._2){
+          if (getValueBoolean(b) == true){
+            //add this element to the containing sets
+            regToB._1._1.foreach(set => {
+              var eName : String = (b.tail).tail
+              while ( ! eName.endsWith("#")){
+                eName = eName.dropRight(1)
+              }
+              eName = eName.dropRight(1)
+              while ( ! eName.endsWith("#")){
+                eName = eName.dropRight(1)
+              }
+              eName = eName.dropRight(1)
+              //println("addElement " + set + "   " + eName)
+              val element : Int = getValueInt(eName)
+              globalSngSet += element
+              addElement(set, element)
+            })
+          }
+          else{
+            var eName : String = (b.tail).tail
+            while ( ! eName.endsWith("#")){
+              eName = eName.dropRight(1)
+            }
+            eName = eName.dropRight(1)
+            while ( ! eName.endsWith("#")){
+              eName = eName.dropRight(1)
+            }
+            eName = eName.dropRight(1)
+            val element : Int = getValueInt(eName)
+            //get the values of all sngs....
+            globalSngSet += element
+          }
+        }
+      }
+    }
+    
+    //fill out the sets of min-max nodes
+    def fillMinMaxNodes(){
+      globalMinMaxIndicies.foreach(minMaxIndex =>{ 
+        usedElems = Set.empty //initialize usedElems for this cluster
+        //for all regions in this cluster
+        //set containing, and set not containing
+        var allRegions : Set[(Set[Expr],Set[Expr])]=  getAllComb(globalClusts(minMaxIndex))
+        //for each region
+        for(reg<-allRegions){
+          //collect minMax values if there is any
+          val filtered = mToRegion.filter(a => a._2 == reg)
+          val mM : Set[String] = filtered.keySet
+          if (!stringToExpr.contains(getName("k#", reg._1, reg._2, minMaxIndex))){
+            if(mM != Set.empty)
+              sys.error("A cardinality constraint should be defined for the min-max values!")
+          }
+          else{
+          val card: Int = getValueInt(getName("k#", reg._1, reg._2, minMaxIndex))
+          
+          //if one minMax is defined
+          if (mM.size == 1 && card > 0){
+            mM.foreach(mMm => {
+              (reg._1).foreach(a =>{ 
+                addElement(a, getValueInt(mMm))
+              })
+              //cardinality of this region
+              //println("this is the card of:" + card + " this " + reg)
+              //println("this is the min-max index: " + minMaxIndex)
+              //println("com elements " + getCommonCurrentElements(reg._1, reg._2))
+              if (mMm.startsWith("m")){ //this is min value
+                while( getCommonCurrentElements(reg._1, reg._2).size != card){
+                  //println(getCommonCurrentElements(reg._1, reg._2))
+                  //println("this is the card of:" + card + " this " + reg)
+                  val freshE : Int = getGreatFreshElem(getValueInt("o#_" + serialNumberToNumOsMap(minMaxIndex) +"_" + minMaxIndex))
+                  (reg._1).foreach(set => addElement(set, freshE))
+                }
+              }
+              else{ //this is max value
+                while( getCommonCurrentElements(reg._1, reg._2).size != card){
+                  val freshE : Int = getSmallFreshElem(getValueInt("o#_1_" + minMaxIndex))
+                  (reg._1).foreach(set => addElement(set, freshE))
+                }
+              }
+            })
+            
+            // no c-s are defined
+          }
+          
+          
+          //if both min and max is defined
+          else if (mM.size == 2 && card > 0){
+            mM.foreach(mMm => {
+              (reg._1).foreach(a =>{ 
+              addElement(a, getValueInt(mMm))
+              })
+            })
+            //it has c values
+            for (ij<- 0 to serialNumberToNumOsMap(minMaxIndex)){
+              val cValue : Int = getValueInt(getName("c#", reg._1, reg._2, minMaxIndex)+ "_" + ij + "_" + minMaxIndex)
+              if (cValue != 0) 
+                for (jji <- 1 to cValue ){
+                  val lowerBound : String = "o#_" + ij +"_" + minMaxIndex
+                  val upperBound : String = "o#_" + (ij+1) +"_" + minMaxIndex
+                  val freshE : Int = getFreshElem(getValueInt(lowerBound), getValueInt(upperBound))
+                  (reg._1).foreach(set => addElement(set, freshE))
+                }
+            }
+          }
+          
+          
+          //if neither min nor max is defined
+          else if (mM.size == 0 && card > 0){
+            //get the corresponding k value
+            while( getCommonCurrentElements(reg._1, reg._2).size != card){
+              val freshE : Int = getSmallFreshElem(getValueInt("o#_1_" + minMaxIndex))
+              (reg._1).foreach(set => addElement(set, freshE))
+            }
+          }
+          else if (mM.size > 2)
+            sys.error("For this region the number of defined min-max-es is more than 2.")         
+        }}
+        readySets = readySets ++ globalClusts(minMaxIndex)
+      })
+      readyClusterIndices = globalMinMaxIndicies
+    }
+    
+    //fill out the whole hyperGraph
+    def fillHyperGraph(){
+      G.initializeTraversion()
+      //first fill out nodes, which are in contained some hyperEdge
+      while(G.hyperEdgesLeft != Set.empty){
+        val myEdge = G.getNextHyperEdge(readySets)
+        //start with the hyperEdge's direct nodes
+        fillOutCluster(myEdge._1)
+        //continue with the nodes contained in the hyperEdge
+        (myEdge._2).foreach(a=> fillOutCluster(a))
+      }
+      //fill out nodes, which are not contained in any hyperEdge
+      var notReadySets : Set[Int] = Set.empty
+      for(iijj <- 0 to globalClusts.length-1){
+        notReadySets += iijj
+      }
+      notReadySets = notReadySets -- readyClusterIndices
+      for(iijj<- notReadySets){
+        fillOutCluster(globalClusts(iijj))
+      }
+    }
+    
+    def fillOutCluster(cls: Set[Expr]){
+      //usedElems till now in this cluster
+      usedElems = Set.empty
+      cls.foreach(a=> usedElems ++= getCommonCurrentElements(Set(a), Set.empty))      
+      val clustIndex : Int = findCluster(cls)
+      readyClusterIndices += clustIndex
+      val combReadies : Set[(Set[Expr],Set[Expr])] = getAllComb(cls & readySets)
+      val combNonReadies : Set[(Set[Expr],Set[Expr])] = getAllComb(cls -- readySets)
+      //var coReadies : (Set[Expr],Set[Expr]) = Pair(Set.empty, Set.empty)
+      for (coReadies <- combReadies){
+        var regionElements : Set[Int] = getCommonCurrentElements(coReadies._1, coReadies._2)
+        for(coNonReadies <- combNonReadies){
+          //get the cardinality of this region
+          val containing : Set[Expr] = coReadies._1 ++ coNonReadies._1
+          val nonContaining : Set[Expr] = coReadies._2 ++ coNonReadies._2
+          val card: Int = getValueInt(getName("k#", containing, nonContaining, clustIndex))
+          //count the sngs in this region
+          val sngSet : Set[Int] = getCommonCurrentElements(containing, nonContaining)
+          if (card-sngSet.size >0)
+          for(j<-0 to (card-sngSet.size)){
+            val elem : Int = (regionElements -- globalSngSet).head
+            regionElements -= elem
+            (coNonReadies._1).foreach(b=> addElement(b, elem))
+          }
+          
+        }
+      }
+      for(coNonReadies <- combNonReadies){
+        //get the cardinality of this region
+        val containing : Set[Expr] = coNonReadies._1
+        val nonContaining : Set[Expr] = coNonReadies._2 ++ (cls & readySets)
+        if (stringToExpr.contains(getName("k#", containing, nonContaining, clustIndex))){
+        val card: Int = getValueInt(getName("k#", containing, nonContaining, clustIndex))
+        //count the sngs in this region
+        val sngSet : Set[Int] = getCommonCurrentElements(containing, nonContaining)
+        if (card-sngSet.size >0)
+        for(j<-0 to (card-sngSet.size)){
+          val elem : Int = getGreatFreshElem(0)
+          (coNonReadies._1).foreach(b=> addElement(b, elem))
+        }
+        }
+          
+      }
+      readySets ++= cls
+      
+    }
+    
+    //auxiliary functions ---------------------------------------------------------
+    def addElement(set: Expr, elem: Int) {
+      val c = solu.find(a=> a._1 == set)
+      c match {
+        case Some(x) => {
+          solu -= x._1
+          val tmmp : Set[Int] = x._2
+          solu += (x._1 -> (tmmp ++ Set(elem)))
+        }
+        case None => {
+          solu += (set -> Set(elem) )
+        }
+      }
+    }    
+     
+    
+    
+    def getValueInt(name: String) : Int  = {
+      var id : Identifier = FreshIdentifier("Nothing", true).setType(SetType(Int32Type))
+      getVar(name) match{
+        case Variable(i) => id = i
+        case _ => sys.error(name + " is not variable in getValueInt!")
+      }
+      counterexample(id) match{
+        case IntLiteral(v) => v
+      }
+    }
+    
+    def getValueBoolean(name: String) : Boolean = {
+      var id : Identifier = FreshIdentifier("Nothing", true).setType(SetType(Int32Type))
+      getVar(name) match{
+        case Variable(i) => id = i
+        case _ => sys.error(name + " is not variable in getValueInt!")
+      }
+      counterexample(id) match{
+        case BooleanLiteral(true) => true
+        case BooleanLiteral(false) => false
+      }
+    }
+    
+
+    def getFreshElem(smaller : Int, greater: Int) :Int = {
+      var found : Boolean = false
+      var jj : Int = 0
+      var ii : Int = smaller + 1
+      while(!found && ii < greater){
+        if (! usedElems.contains(ii)){
+          jj == ii
+          usedElems += jj
+          found = true
+        }
+        ii = ii+1
+      }
+      if (!found) 
+        sys.error("Not possible to find fresh value between " + smaller + " and " + greater + "in getFreshElem!")
+      jj
+    }
+    
+    def getSmallFreshElem(smaller : Int) :Int = {
+      var found : Boolean = false
+      var jj : Int = 0
+      var ii : Int = getValueInt("mInf") -1
+      while(!found){
+        if (! usedElems.contains(ii)){
+          jj == ii
+          usedElems += jj
+          found = true
+        }
+        ii = ii-1
+      }
+      jj
+    }
+    
+    def getGreatFreshElem(great : Int) :Int = {
+      var found : Boolean = false
+      var jj : Int = 0
+      var ii : Int = getValueInt("inf") +1
+      while(!found){
+        if (! usedElems.contains(ii)){
+          jj == ii
+          usedElems += jj
+          found = true
+        }
+        ii = ii+1
+      }
+      jj
+    }
+    
+    
+    def getCommonCurrentElements(sets: Set[Expr], notContaining: Set[Expr]) : Set[Int] = {
+      (sets ++ notContaining).foreach(tmpSet =>{
+        if (! (solu.keySet.contains(tmpSet)))
+          solu += (tmpSet -> Set.empty)
+      })
+      var elms : Set[Int] = solu(sets.head)
+      sets.foreach(a => elms = elms & solu(a))
+      notContaining.foreach(b => elms = elms -- solu(b))
+      elms
+    }
+    
+    def getAllComb(sets: Set[Expr]) : Set[(Set[Expr],Set[Expr])]= {
+      var allRegions : Set[(Set[Expr],Set[Expr])] = Set(Pair(Set.empty,Set.empty)) 
+      for (ii<-sets){
+        for(reg<-allRegions if(!reg._1.contains(ii) && !reg._2.contains(ii))){
+          allRegions -= reg
+          allRegions += Pair(reg._1 + ii, reg._2)
+          allRegions += Pair(reg._1, reg._2 + ii)
+        }
+      }
+      for(allReg<-allRegions if(allReg._1 == Set.empty)){
+        allRegions -= allReg
+      }
+      allRegions
+    }
+    
+    //find the clusters, if not found-> return -1 -> it should never be the case
+    def findCluster(cls1: Set[Expr]): Int = {
+      var found: Boolean = false
+      var jj: Int = -1
+      for(ii<- 0 to globalClusts.length-1 if !found) {
+        if(globalClusts(ii) == cls1){
+          jj = ii
+          found = true
+        }
+      }
+      jj
+    }    
+
+    
+    
+
+    
+    //starts executing here ----------------------------------
+    //println("CounterExample: " + counterexample)
+    
+    InsertSNGs()
+    fillMinMaxNodes()
+    fillHyperGraph()
+    
+    println("The solution is: " + solu)
+    
+  
+  }
+  
+  
 }

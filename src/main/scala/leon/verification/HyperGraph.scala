@@ -24,6 +24,29 @@ class HyperGraph{
       var clusters : Array[Set[Expr]] = Array.empty
       var minMaxIndecies: Set[Int] = Set.empty
       
+      //----------------------------------------
+      var hyperEdgesLeft : Edges = Set.empty
+      def initializeTraversion() {
+        hyperEdgesLeft = hyperEdges
+      }
+      
+      def getNextHyperEdge(readyVars: Set[Expr]) : Edge = {
+        var foundEdge: Edge = hyperEdgesLeft.head
+        var found: Boolean = false
+        for(myEdge<- hyperEdgesLeft){
+          if ((readyVars & myEdge._1) != Set.empty) {
+            found = true
+            foundEdge = myEdge
+          }
+        }
+        if (!found)
+          foundEdge = hyperEdgesLeft.head
+        hyperEdgesLeft = hyperEdgesLeft - foundEdge
+        foundEdge
+      }
+      
+      //------------------------------------
+      
       def createHyperGraph(dependecies: Nodes) {
         //println("input is: " + dependecies)
 	for(constraint<- dependecies){
@@ -189,6 +212,8 @@ class HyperGraph{
       def getClustsArrays(): (Array[Set[Expr]], Set[Int]) = {
         clusters = (minMaxComponents ++ getCardClust()).toArray
         for(ii<- 0 to clusters.length -1){
+          //minMaxComponents contains the min-max nodes
+          //chech if this node is in the set of min-max nodes
           if (minMaxComponents.contains(clusters(ii))) 
             minMaxIndecies += ii
         }

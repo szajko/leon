@@ -89,29 +89,14 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       }
 
       val woletvc =  And(withoutLets :: asEqualities)
-      
-      //println(woletvc)
-      
-      //println("------------ez----------------------")
-      
-      
-      //collect the expression on sets
-      
-      //val myPrinter : Expr=>Expr = simplePreTransform(e => { println(e); e })
-
-      //val s = myPrinter(woletvc) // after this, s == someTree
-      //println(s)
-      
-      //val someExpression : Expr = ...
-      
+           
+      //collect the expression on sets      
       var setConstraints : Set[Expr]= Set.empty 
       
       def collectSetOperator(t: Expr)  = t  match {
         case SetEquals(l,r) => {
-          println("this is what we are SEARCHING!!!!!!!!!!!!!!!!!!!!!!")
-          println(t)
-          println(l.getType)
-          println(r.getType)
+          //println("A SetEquals operator is found.")
+          //println(l.getType)
           setConstraints += t; IntLiteral(0)
         }
         case ElementOfSet(_, _) => setConstraints += t; IntLiteral(0)
@@ -130,75 +115,20 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       
       val s = myPrinter(woletvc)
       
-      //println(setConstraints)
       var setCnsrt: Expr = BooleanLiteral(true)
       if (! setConstraints.isEmpty){
-        println(woletvc)
+        //println(woletvc)
       
-        println("------------collect set expr.----------------------")
+        println("----------------------The collected set expresssiona are:----------------------")
 	println(setConstraints)
-	
-      
-      
-      
 	setCnsrt = proceedSets(setConstraints)
-	println("---------")
-	
-//	println(setCnsrt)
-      
-	println("itt a vege")
+	//println("All added constraints------------------------" + setCnsrt)
       }
       
       vc = Implies(setCnsrt, vc)
       
-      
-      //I have all constraints on sets
-      //let eliminate If then else operators and so on....
+      //let eliminate If then else operators and so on.... FIXME
       //ERROR: it is missing right now
-      
-      //convert it to the formula, what I can process
-      //Handling set operators !!! 
-      
-      //val setExprMatcher : PartialFunction[Expr,Expr] = { 
-	//case e if e.getType == SetType(Int32Type) => e 
-//	case e if e match {
-//	  case SetMin(_) => e
-//	  case _ =>
-//	}
-//      }
-
-//      val allSetExpressions : List[Expr] = collect(setExprMatcher)(woletvc)
-      
-     // println(allSetExpressions)
-
-      //println("------------create a tree myself----------------------")
-      //Ez mukodik :-):-)
-      //val aid = FreshIdentifier("envaltozom").setType(Int32Type)
-      //val av = Variable(aid)
-
-      //val laid = FreshIdentifier("en").setType(Int32Type)
-      //val lav = Variable(aid)
-      //val finExpr = LessThan(av, lav)
-      
-      //println(finExpr)
-      
-      //create a set
-      
-      //val intSetType : TypeTree = SetType(Int32Type)
-
-      //val mySetName = FreshIdentifier("halmaz", true).setType(intSetType)   
-      // the "true" means it will always print with unique id
-
-      //val myset = FiniteSet(Seq(IntLiteral(0), IntLiteral(1)))
-      //val av = Variable(mySetName)
-      
-      //println(myset)
-      //constant set
-      //FiniteSet(Seq(IntLiteral(0), IntLiteral(1)))
-      
-      //FiniteSet(Seq.empty).setType(Int32Type)
-
-      
       //println(av)
       
       
@@ -246,6 +176,10 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
             case Some(false) =>
               reporter.error("Found counter-example : ")
               reporter.error(counterexample.toSeq.sortBy(_._1.name).map(p => p._1 + " -> " + p._2).mkString("\n"))
+              //the counter example is in the map counterexample
+              //take this map and rewrite it into a map, that only constains variables of the initial problem
+              //build sets for set variables...
+              getCounterExample(counterexample)
               reporter.error("==== INVALID ====")
               vcInfo.hasValue = true
               vcInfo.value = Some(false)
