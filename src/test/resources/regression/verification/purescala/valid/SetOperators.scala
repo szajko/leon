@@ -196,7 +196,7 @@ object TestCase {
   
   //Test the program with formulas containing min-max constraints
   
-  //empty set are solution
+/*  //empty set are solution
   //Min(A \ B) = Min(B \ A) ^ |A U B| = 2
   def mProb1SAT(A: Set[Int], B: Set[Int]) : Boolean = {
     !(
@@ -255,7 +255,7 @@ object TestCase {
       NewAbove == (OldAbove ++ Set(e))
     )
     pivot < NewAbove.min
-  } holds
+  } holds 
   
   // A => B as !A || B  
   //|OldAbove|> 0 ^ |NewAbove| > 0 ^ !((OldAbove = Set() v pivot < Min(OldAbove)  ^ !(e <= pivot) ^
@@ -267,9 +267,10 @@ object TestCase {
       A.max < B.min
     )
       x < y
-  } holds
+  } holds */
+
   
-  // A => B as !A || B  
+  /*// A => B as !A || B  
   //|OldAbove|> 0 ^ |NewAbove| > 0 ^ ((OldAbove = Set() v pivot < Min(OldAbove)  ^ !(e <= pivot) 
   //^ NewAbove = OldAbove U Set(e)) => pivot < Min(NewAbove))
   def mNegPivot3SAT(pivot: Int, e: Int,  OldAbove: Set[Int], NewAbove: Set[Int]) : Boolean = {
@@ -294,7 +295,7 @@ object TestCase {
     !(
       OldSet.size > 0 && (!(NewSet == (OldSet ++ Set(large)) && large >= OldSet.max) || NewSet.max == large)
     )
-  } holds
+  } holds*/
   
   // A => B as !A || B 
   //|OldSet| > 0 ^ !((NewSet = OldSet U Set(large) ^ large > Max(OldSet)) => Max(NewSet) >= Max(OldSet))
@@ -312,13 +313,13 @@ object TestCase {
     )
   } holds 
   
-  // A => B as !A || B 
+/*  // A => B as !A || B 
   //|OldSet|>0 ^ !((NewSet = Oldset U Set(large) ^ large +1 >= Max(OldSet)) => Max(NewSet) = large)
   def mAddSupLS6SAT(large: Int,  OldSet: Set[Int], NewSet: Set[Int]) : Boolean = {
     !(
       OldSet.size > 0 && !(!(NewSet == (OldSet ++ Set(large)) && large + 1 >= OldSet.max) || NewSet.max == large)
     )
-  } holds
+  } holds */
   
 /*           
   test("UneqPart_7"){
