@@ -14,9 +14,7 @@ import leon.purescala.Definitions._
 import leon.purescala.Trees._
 import leon.purescala.TypeTrees._
 
-import org.scalatest.FunSuite
-
-class EvaluatorsTests extends FunSuite {
+class EvaluatorsTests extends LeonTestSuite {
   private implicit lazy val leonContext = LeonContext(
     settings = Settings(
       synthesis = false,
@@ -24,7 +22,7 @@ class EvaluatorsTests extends FunSuite {
       verify    = false
     ),
     files = List(),
-    reporter = new SilentReporter
+    reporter = new TestSilentReporter
   )
 
   private val evaluatorConstructors : List[(LeonContext,Program)=>Evaluator] = List(
@@ -41,7 +39,7 @@ class EvaluatorsTests extends FunSuite {
     val warningsBefore = leonContext.reporter.warningCount
 
     val program = pipeline.run(leonContext)((str, Nil))
-  
+
     assert(leonContext.reporter.errorCount   === errorsBefore)
     assert(leonContext.reporter.warningCount === warningsBefore)
 
@@ -316,7 +314,7 @@ class EvaluatorsTests extends FunSuite {
                |  def finite() : Set[Int] = Set(1, 2, 3)
                |  def build(x : Int, y : Int, z : Int) : Set[Int] = Set(x, y, z)
                |  def union(s1 : Set[Int], s2 : Set[Int]) : Set[Int] = s1 ++ s2
-               |  def inter(s1 : Set[Int], s2 : Set[Int]) : Set[Int] = s1 ** s2
+               |  def inter(s1 : Set[Int], s2 : Set[Int]) : Set[Int] = s1 & s2
                |  def diff(s1 : Set[Int], s2 : Set[Int]) : Set[Int] = s1 -- s2
                |}""".stripMargin
 
@@ -404,6 +402,28 @@ class EvaluatorsTests extends FunSuite {
       checkComp(e, ArrayLength(ia), IL(3))
 
       checkError(e, mkCall("boolArrayRead", ba, IL(2)))
+    }
+  }
+
+  test("Sets and maps of structures") {
+    val p = """|object Program {
+               |  case class MyPair(x : Int, y : Boolean)
+               |
+               |  def buildPairCC(x : Int, y : Boolean) : MyPair = MyPair(x,y)
+               |  def mkSingletonCC(p : MyPair) : Set[MyPair] = Set(p)
+               |  def containsCC(s : Set[MyPair], p : MyPair) : Boolean = s.contains(p)
+               |
+               |  def buildPairT(x : Int, y : Boolean) : (Int,Boolean) = (x,y)
+               |  def mkSingletonT(p : (Int,Boolean)) : Set[(Int,Boolean)] = Set(p)
+               |  def containsT(s : Set[(Int,Boolean)], p : (Int,Boolean)) : Boolean = s.contains(p)
+               |}""".stripMargin
+
+    implicit val progs = parseString(p)
+    val evaluators = prepareEvaluators
+
+    for(e <- evaluators) {
+      checkComp(e, mkCall("containsCC", mkCall("mkSingletonCC", mkCall("buildPairCC", IL(42), T)), mkCall("buildPairCC", IL(42), T)), T)
+      checkComp(e, mkCall("containsT", mkCall("mkSingletonT", mkCall("buildPairT", IL(42), T)), mkCall("buildPairT", IL(42), T)), T)
     }
   }
 

@@ -5,7 +5,7 @@ package synthesis
 
 import synthesis.search._
 import akka.actor._
-import solvers.z3.FairZ3Solver
+import solvers.z3.{FairZ3Solver,UninterpretedZ3Solver}
 import solvers.TrivialSolver
 
 class ParallelSearch(synth: Synthesizer,
@@ -24,13 +24,15 @@ class ParallelSearch(synth: Synthesizer,
   private[this] var contexts = List[SynthesisContext]()
 
   def initWorkerContext(wr: ActorRef) = {
-    val reporter = new SilentReporter
-    val solver = new FairZ3Solver(synth.context.copy(reporter = reporter))
+    val solver = new FairZ3Solver(synth.context)
     solver.setProgram(synth.program)
-
     solver.initZ3
 
-    val ctx = SynthesisContext.fromSynthesizer(synth).copy(solver = solver)
+    val  simpleSolver = new UninterpretedZ3Solver(synth.context)
+    simpleSolver.setProgram(synth.program)
+    simpleSolver.initZ3
+
+    val ctx = SynthesisContext.fromSynthesizer(synth).copy(solver = solver, simpleSolver = simpleSolver)
 
     synchronized {
       contexts = ctx :: contexts

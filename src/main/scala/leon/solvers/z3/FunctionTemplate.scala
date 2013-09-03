@@ -263,8 +263,8 @@ object FunctionTemplate {
             Or(parts.map(rec(pathVar, _)))
           }
 
-        case i @ IfExpr(cond, then, elze) => {
-          if(!containsFunctionCalls(cond) && !containsFunctionCalls(then) && !containsFunctionCalls(elze)) {
+        case i @ IfExpr(cond, thenn, elze) => {
+          if(!containsFunctionCalls(cond) && !containsFunctionCalls(thenn) && !containsFunctionCalls(elze)) {
             i
           } else {
             val newBool1 : Identifier = FreshIdentifier("b", true).setType(BooleanType)
@@ -277,7 +277,7 @@ object FunctionTemplate {
             exprVars += newExpr
 
             val crec = rec(pathVar, cond)
-            val trec = rec(newBool1, then)
+            val trec = rec(newBool1, thenn)
             val erec = rec(newBool2, elze)
 
             storeGuarded(pathVar, Or(Variable(newBool1), Variable(newBool2)))
@@ -343,19 +343,21 @@ object FunctionTemplate {
     }
 
     // Now the postcondition.
-    if (funDef.hasPostcondition) {
-      val post0 : Expr = matchToIfThenElse(funDef.getPostcondition)
-      val post : Expr = replace(Map(ResultVariable() -> invocation), post0)
+    funDef.postcondition match {
+      case Some((id, post)) =>
+        val newPost : Expr = replace(Map(Variable(id) -> invocation), matchToIfThenElse(post))
 
-      val postHolds : Expr =
-        if(funDef.hasPrecondition) {
-          Implies(prec.get, post)
-        } else {
-          post
-        }
+        val postHolds : Expr =
+          if(funDef.hasPrecondition) {
+            Implies(prec.get, newPost)
+          } else {
+            newPost
+          }
 
-      val finalPred2 : Expr = rec(activatingBool,  postHolds)
-      storeGuarded(activatingBool, finalPred2)
+        val finalPred2 : Expr = rec(activatingBool,  postHolds)
+        storeGuarded(activatingBool, finalPred2)
+      case None =>
+
     }
 
     new FunctionTemplate(solver, funDef, activatingBool, Set(condVars.toSeq : _*), Set(exprVars.toSeq : _*), Map(guardedExprs.toSeq : _*),

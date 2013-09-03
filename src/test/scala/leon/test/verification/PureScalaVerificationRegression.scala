@@ -6,13 +6,9 @@ package verification
 
 import leon.verification.{AnalysisPhase,VerificationReport}
 
-import org.scalatest.FunSuite
-
 import java.io.File
 
-import TestUtils._
-
-class PureScalaVerificationRegression extends FunSuite {
+class PureScalaVerificationRegression extends LeonTestSuite {
   private var counter : Int = 0
   private def nextInt() : Int = {
     counter += 1
@@ -45,7 +41,7 @@ class PureScalaVerificationRegression extends FunSuite {
         ),
         options = leonOptions.toList,
         files = List(file),
-        reporter = new SilentReporter
+        reporter = new TestSilentReporter
       )
 
       val pipeline = mkPipeline
@@ -69,8 +65,8 @@ class PureScalaVerificationRegression extends FunSuite {
       _.endsWith(".scala"))
 
     for(f <- fs) {
-      mkTest(f, List(LeonFlagOption("feelinglucky")), forError)(block)
-      mkTest(f, List(LeonFlagOption("codegen"), LeonFlagOption("evalground"), LeonFlagOption("feelinglucky")), forError)(block)
+      mkTest(f, List(LeonFlagOption("feelinglucky", true)), forError)(block)
+      mkTest(f, List(LeonFlagOption("codegen", true), LeonFlagOption("evalground", true), LeonFlagOption("feelinglucky", true)), forError)(block)
     }
   }
   

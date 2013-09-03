@@ -20,7 +20,7 @@ object Heaps {
   /*~~~~~~~~~~~~~~~~~~~~~~~*/
   def heapContent(h : Heap) : Set[Int] = h match {
     case Empty => Set.empty[Int]
-    case Nodes(n, h) => nodeContent(n) ++ heapContent(h)
+    case Nodes(n, ns) => nodeContent(n) ++ heapContent(ns)
   }
   
   def nodeContent(n : Node) : Set[Int] = n match {
@@ -127,19 +127,19 @@ object Heaps {
     findMin(h1) == Some(42) &&
     findMin(h2) == Some(42) &&
     findMin(h3) == Some(0)
-  } holds
+  }.holds
   
   def sanity1() : Boolean = {
     val h0 = insert(42, Empty)
     val h1 = insert(0, Empty)
     val h2 = merge(h0, h1)
     findMin(h2) == Some(0)
-  } holds
+  }.holds
   
   def sanity3() : Boolean = {
     val h0 = insert(42, insert(0, insert(3, insert(12, Empty))))
     val h1 = deleteMin(h0)
     findMin(h1) == Some(3)
-  } holds
+  }.holds
 }
 

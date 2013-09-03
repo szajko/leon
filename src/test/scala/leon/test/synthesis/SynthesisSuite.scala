@@ -1,6 +1,7 @@
 /* Copyright 2009-2013 EPFL, Lausanne */
 
-package leon.test.synthesis
+package leon.test
+package synthesis
 
 import leon._
 import leon.purescala.Definitions._
@@ -11,12 +12,11 @@ import leon.solvers.Solver
 import leon.synthesis._
 import leon.synthesis.utils._
 
-import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers._
 
 import java.io.{BufferedWriter, FileWriter, File}
 
-class SynthesisSuite extends FunSuite {
+class SynthesisSuite extends LeonTestSuite {
   private var counter : Int = 0
   private def nextInt() : Int = {
     counter += 1
@@ -32,7 +32,7 @@ class SynthesisSuite extends FunSuite {
         verify    = false
       ),
       files = List(),
-      reporter = new SilentReporter
+      reporter = new TestSilentReporter
     )
 
     val opts = SynthesisOptions()
@@ -136,20 +136,6 @@ class SynthesisSuite extends FunSuite {
     }
   }
 
-
-  def assertFastEnough(sctx: SynthesisContext, rr: Traversable[RuleInstantiation], timeoutMs: Long) {
-    for (alt <- rr) {
-      val ts = System.currentTimeMillis
-
-      val res = alt.apply(sctx)
-
-      val t = System.currentTimeMillis - ts
-
-      t should be <= timeoutMs
-    }
-  }
-
-
   forProgram("Cegis 1")(
     """
 import scala.collection.immutable.Set
@@ -173,7 +159,6 @@ object Injection {
   ) {
     case (sctx, fd, p) =>
       assertAllAlternativesSucceed(sctx, rules.CEGIS.instantiateOn(sctx, p))
-      assertFastEnough(sctx, rules.CEGIS.instantiateOn(sctx, p), 100)
   }
 
   forProgram("Cegis 2")(
@@ -278,5 +263,81 @@ object SortedList {
           Apply("CEGIS")
         ))
       ))
+  }
+
+  synthesize("Church")("""
+import leon.Utils._
+object ChurchNumerals {
+  sealed abstract class Num
+  case object Z extends Num
+  case class  S(pred: Num) extends Num
+
+  def value(n:Num) : Int = {
+    n match {
+      case Z => 0
+      case S(p) => 1 + value(p)
+    }
+  } ensuring (_ >= 0)
+
+  // def add(x : Num, y : Num) : Num = (x match {
+  //   case Z => y
+  //   case S(p) => add(p, S(y))
+  // }) ensuring (value(_) == value(x) + value(y))
+
+  def add(x: Num, y: Num): Num = {
+    choose { (r : Num) =>
+      value(r) == value(x) + value(y)
+    }
+  }
+}
+    """) {
+    case "add" =>
+      Apply("ADT Induction on 'y'", List(
+        Apply("CEGIS"),
+        Apply("CEGIS")
+      ))
+  }
+
+  synthesize("Church")("""
+import leon.Utils._
+object ChurchNumerals {
+  sealed abstract class Num
+  case object Z extends Num
+  case class  S(pred: Num) extends Num
+
+  def value(n:Num) : Int = {
+    n match {
+      case Z => 0
+      case S(p) => 1 + value(p)
+    }
+  } ensuring (_ >= 0)
+
+  def add(x : Num, y : Num) : Num = (x match {
+    case Z => y
+    case S(p) => add(p, S(y))
+  }) ensuring (value(_) == value(x) + value(y))
+
+  //def distinct(x : Num, y : Num) : Num = (x match {
+  //  case Z =>
+  //    S(y)
+
+  //  case S(p) =>
+  //    y match {
+  //      case Z =>
+  //        S(x)
+  //      case S(p) =>
+  //        Z
+  //    }
+  //}) ensuring (res => res != x  && res != y)
+
+  def distinct(x: Num, y: Num): Num = {
+    choose { (r : Num) =>
+      r != x && r != y
+    }
+  }
+}
+    """) {
+    case "distinct" =>
+      Apply("CEGIS")
   }
 }

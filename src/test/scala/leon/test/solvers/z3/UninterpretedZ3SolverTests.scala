@@ -1,9 +1,9 @@
 /* Copyright 2009-2013 EPFL, Lausanne */
 
-package leon.test.solvers.z3
+package leon.test
+package solvers.z3
 
 import leon.LeonContext
-import leon.SilentReporter
 
 import leon.purescala.Common._
 import leon.purescala.Definitions._
@@ -14,9 +14,7 @@ import leon.purescala.TypeTrees._
 import leon.solvers.Solver
 import leon.solvers.z3.UninterpretedZ3Solver
 
-import org.scalatest.FunSuite
-
-class UninterpretedZ3SolverTests extends FunSuite {
+class UninterpretedZ3SolverTests extends LeonTestSuite {
   private var testCounter : Int = 0
   private def solverCheck(solver : Solver, expr : Expr, expected : Option[Boolean], msg : String) = {
     testCounter += 1
@@ -41,7 +39,7 @@ class UninterpretedZ3SolverTests extends FunSuite {
     "Solver should not be able to decide the formula " + expr + "."
   )
 
-  private val silentContext = LeonContext(reporter = new SilentReporter)
+  private val silentContext = LeonContext(reporter = new TestSilentReporter)
 
   // def f(fx : Int) : Int = fx + 1
   private val fx   : Identifier = FreshIdentifier("x").setType(Int32Type)

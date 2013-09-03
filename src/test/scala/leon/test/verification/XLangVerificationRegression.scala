@@ -6,13 +6,9 @@ package verification
 
 import leon.verification.{AnalysisPhase,VerificationReport}
 
-import org.scalatest.FunSuite
-
 import java.io.File
 
-import TestUtils._
-
-class XLangVerificationRegression extends FunSuite {
+class XLangVerificationRegression extends LeonTestSuite {
   private var counter : Int = 0
   private def nextInt() : Int = {
     counter += 1
@@ -47,7 +43,7 @@ class XLangVerificationRegression extends FunSuite {
         ),
         //options = List(LeonFlagOption("feelinglucky")),
         files = List(file),
-        reporter = new SilentReporter
+        reporter = new TestSilentReporter
       )
 
       val pipeline = mkPipeline

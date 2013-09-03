@@ -56,26 +56,30 @@ class PrettyPrinter(sb: StringBuffer = new StringBuffer) {
   def pp(tree: Expr, lvl: Int): Unit = tree match {
     case Variable(id) => sb.append(idToString(id))
     case DeBruijnIndex(idx) => sb.append("_" + idx)
-    case LetTuple(bs,d,e) => {
-        //pp(e, pp(d, sb.append("(let (" + b + " := "), lvl).append(") in "), lvl).append(")")
+    case LetTuple(bs,d,e) =>
       sb.append("(let (" + bs.map(idToString _).mkString(",") + " := ");
       pp(d, lvl)
       sb.append(") in\n")
       ind(lvl+1)
       pp(e, lvl+1)
       sb.append(")")
-      sb
-    }
-    case Let(b,d,e) => {
-        //pp(e, pp(d, sb.append("(let (" + b + " := "), lvl).append(") in "), lvl).append(")")
+
+    case Let(b,d,e) =>
       sb.append("(let (" + idToString(b) + " := ");
       pp(d, lvl)
       sb.append(") in\n")
       ind(lvl+1)
       pp(e, lvl+1)
       sb.append(")")
-      sb
-    }
+
+    case LetDef(fd,body) =>
+      sb.append("\n")
+      pp(fd, lvl+1)
+      sb.append("\n")
+      sb.append("\n")
+      ind(lvl)
+      pp(body, lvl)
+
     case And(exprs) => ppNary(exprs, "(", " \u2227 ", ")", lvl)            // \land
     case Or(exprs) => ppNary(exprs, "(", " \u2228 ", ")", lvl)             // \lor
     case Not(Equals(l, r)) => ppBinary(l, r, " \u2260 ", lvl)    // \neq
@@ -88,41 +92,35 @@ class PrettyPrinter(sb: StringBuffer = new StringBuffer) {
     case StringLiteral(s) => sb.append("\"" + s + "\"")
     case UnitLiteral => sb.append("()")
     case t@Tuple(exprs) => ppNary(exprs, "(", ", ", ")", lvl)
-    case s@TupleSelect(t, i) => {
+    case s@TupleSelect(t, i) =>
       pp(t, lvl)
       sb.append("._" + i)
-      sb
-    }
 
-    case c@Choose(vars, pred) => {
+    case c@Choose(vars, pred) =>
       sb.append("choose("+vars.map(idToString _).mkString(", ")+" => ")
       pp(pred, lvl)
       sb.append(")")
-    }
 
-    case CaseClass(cd, args) => {
+    case CaseClass(cd, args) =>
       sb.append(idToString(cd.id))
       if (cd.isCaseObject) {
         ppNary(args, "", "", "", lvl)
       } else {
         ppNary(args, "(", ", ", ")", lvl)
       }
-      sb
-    }
-    case CaseClassInstanceOf(cd, e) => {
+
+    case CaseClassInstanceOf(cd, e) =>
       pp(e, lvl)
       sb.append(".isInstanceOf[" + idToString(cd.id) + "]")
-      sb
-    }
+
     case CaseClassSelector(_, cc, id) =>
       pp(cc, lvl)
       sb.append("." + idToString(id))
 
-    case FunctionInvocation(fd, args) => {
+    case FunctionInvocation(fd, args) =>
       sb.append(idToString(fd.id))
       ppNary(args, "(", ", ", ")", lvl)
-      sb
-    }
+
     case Plus(l,r) => ppBinary(l, r, " + ", lvl)
     case Minus(l,r) => ppBinary(l, r, " - ", lvl)
     case Times(l,r) => ppBinary(l, r, " * ", lvl)
@@ -153,7 +151,7 @@ class PrettyPrinter(sb: StringBuffer = new StringBuffer) {
     case MultisetCardinality(t) => ppUnary(t, "|", "|", lvl)
     case MultisetPlus(l,r) => ppBinary(l, r, " \u228E ", lvl)    // U+
     case MultisetToSet(e) => pp(e, lvl); sb.append(".toSet")
-    case FiniteMap(rs) => {
+    case FiniteMap(rs) =>
       sb.append("{")
       val sz = rs.size
       var c = 0
@@ -161,62 +159,58 @@ class PrettyPrinter(sb: StringBuffer = new StringBuffer) {
         pp(k, lvl); sb.append(" -> "); pp(v, lvl); c += 1 ; if(c < sz) sb.append(", ")
       }}
       sb.append("}")
-    }
-    case MapGet(m,k) => {
+
+    case MapGet(m,k) =>
       pp(m, lvl)
       ppNary(Seq(k), "(", ",", ")", lvl)
-      sb
-    }
-    case MapIsDefinedAt(m,k) => {
+
+    case MapIsDefinedAt(m,k) =>
       pp(m, lvl)
       sb.append(".isDefinedAt")
       ppNary(Seq(k), "(", ",", ")", lvl)
-      sb
-    }
-    case ArrayLength(a) => {
+    
+    case ArrayLength(a) =>
       pp(a, lvl)
       sb.append(".length")
-    }
-    case ArrayClone(a) => {
+    
+    case ArrayClone(a) => 
       pp(a, lvl)
       sb.append(".clone")
-    }
-    case fill@ArrayFill(size, v) => {
+    
+    case fill@ArrayFill(size, v) => 
       sb.append("Array.fill(")
       pp(size, lvl)
       sb.append(")(")
       pp(v, lvl)
       sb.append(")")
-    }
-    case am@ArrayMake(v) => {
+    
+    case am@ArrayMake(v) =>
       sb.append("Array.make(")
       pp(v, lvl)
       sb.append(")")    
-    }
-    case sel@ArraySelect(ar, i) => {
+
+    case sel@ArraySelect(ar, i) =>
       pp(ar, lvl)
       sb.append("(")
       pp(i, lvl)
       sb.append(")")
-    }
-    case up@ArrayUpdated(ar, i, v) => {
+
+    case up@ArrayUpdated(ar, i, v) =>
       pp(ar, lvl)
       sb.append(".updated(")
       pp(i, lvl)
       sb.append(", ")
       pp(v, lvl)
       sb.append(")")
-    }
-    case FiniteArray(exprs) => {
+    
+    case FiniteArray(exprs) =>
       ppNary(exprs, "Array(", ", ", ")", lvl)
-    }
 
-    case Distinct(exprs) => {
+    case Distinct(exprs) =>
       sb.append("distinct")
       ppNary(exprs, "(", ", ", ")", lvl)
-    }
     
-    case IfExpr(c, t, e) => {
+    case IfExpr(c, t, e) =>
       sb.append("if (")
       pp(c, lvl)
       sb.append(")\n")
@@ -227,7 +221,6 @@ class PrettyPrinter(sb: StringBuffer = new StringBuffer) {
       sb.append("else\n")
       ind(lvl+1)
       pp(e, lvl+1)
-    }
 
     case mex @ MatchExpr(s, csc) => {
       def ppc(p: Pattern): Unit = p match {
@@ -284,14 +277,12 @@ class PrettyPrinter(sb: StringBuffer = new StringBuffer) {
       sb.append("}")
     }
 
-    case ResultVariable() => sb.append("#res")
     case Not(expr) => ppUnary(expr, "\u00AC(", ")", lvl)               // \neg
 
-    case e @ Error(desc) => {
+    case e @ Error(desc) =>
       sb.append("error(\"" + desc + "\")[")
       pp(e.getType, lvl)
       sb.append("]")
-    }
 
     case (expr: PrettyPrintable) => expr.printWith(lvl, this)
 
@@ -300,7 +291,7 @@ class PrettyPrinter(sb: StringBuffer = new StringBuffer) {
 
   // TYPE TREES
   // all type trees are printed in-line
-  def ppNaryType(tpes: Seq[TypeTree], pre: String, op: String, post: String, lvl: Int): StringBuffer = {
+  def ppNaryType(tpes: Seq[TypeTree], pre: String, op: String, post: String, lvl: Int): Unit = {
     sb.append(pre)
     val sz = tpes.size
     var c = 0
@@ -310,10 +301,9 @@ class PrettyPrinter(sb: StringBuffer = new StringBuffer) {
     })
 
     sb.append(post)
-    sb
   }
 
-  def pp(tpe: TypeTree, lvl: Int): StringBuffer = tpe match {
+  def pp(tpe: TypeTree, lvl: Int): Unit = tpe match {
     case Untyped => sb.append("???")
     case UnitType => sb.append("Unit")
     case Int32Type => sb.append("Int")
@@ -390,35 +380,36 @@ class PrettyPrinter(sb: StringBuffer = new StringBuffer) {
         parent.foreach(p => sb.append(" extends " + idToString(p.id)))
       }
 
-      case fd @ FunDef(id, rt, args, body, pre, post) => {
+      case fd: FunDef =>
         for(a <- fd.annotations) {
           ind(lvl)
           sb.append("@" + a + "\n")
         }
 
-        pre.foreach(prec => {
+        fd.precondition.foreach(prec => {
           ind(lvl)
           sb.append("@pre : ")
           pp(prec, lvl)
           sb.append("\n")
         })
 
-        post.foreach(postc => {
+        fd.postcondition.foreach{ case (id, postc) => {
           ind(lvl)
           sb.append("@post: ")
+          sb.append(idToString(id)+" => ")
           pp(postc, lvl)
           sb.append("\n")
-        })
+        }}
 
         ind(lvl)
         sb.append("def ")
-        sb.append(idToString(id))
+        sb.append(idToString(fd.id))
         sb.append("(")
 
-        val sz = args.size
+        val sz = fd.args.size
         var c = 0
         
-        args.foreach(arg => {
+        fd.args.foreach(arg => {
           sb.append(arg.id)
           sb.append(" : ")
           pp(arg.tpe, lvl)
@@ -430,13 +421,15 @@ class PrettyPrinter(sb: StringBuffer = new StringBuffer) {
         })
 
         sb.append(") : ")
-        pp(rt, lvl)
+        pp(fd.returnType, lvl)
         sb.append(" = ")
-        if(body.isDefined)
-          pp(body.get, lvl)
-        else
-          sb.append("[unknown function implementation]")
-      }
+        fd.body match {
+          case Some(body) =>
+            pp(body, lvl)
+
+          case None =>
+            sb.append("[unknown function implementation]")
+        }
 
       case _ => sb.append("Defn?")
     }

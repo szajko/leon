@@ -27,15 +27,12 @@ class Synthesizer(val context : LeonContext,
                   val problem: Problem,
                   val options: SynthesisOptions) {
 
-  val silentReporter = new SilentReporter
-  val silentContext = context.copy(reporter = silentReporter)
-
   val rules: Seq[Rule] = options.rules
 
-  val solver: FairZ3Solver = new FairZ3Solver(silentContext)
+  val solver: FairZ3Solver = new FairZ3Solver(context)
   solver.setProgram(program)
 
-  val simpleSolver: Solver = new UninterpretedZ3Solver(silentContext)
+  val simpleSolver: Solver = new UninterpretedZ3Solver(context)
   simpleSolver.setProgram(program)
 
   val reporter = context.reporter
@@ -49,7 +46,13 @@ class Synthesizer(val context : LeonContext,
       } else if (options.searchWorkers > 1) {
         new ParallelSearch(this, problem, options.searchWorkers)
       } else {
-        new SimpleSearch(this, problem)
+        options.searchBound match {
+          case Some(b) =>
+            new BoundedSearch(this, problem, b)
+
+          case None =>
+            new SimpleSearch(this, problem)
+        }
       }
 
     val sigINT = new Signal("INT")
@@ -97,15 +100,18 @@ class Synthesizer(val context : LeonContext,
 
     val (npr, fds) = solutionToProgram(sol)
 
-    val tsolver = new TimeoutSolver(new FairZ3Solver(silentContext), timeoutMs)
+    val tsolver = new TimeoutSolver(new FairZ3Solver(context), timeoutMs)
     tsolver.setProgram(npr)
 
     val vcs = generateVerificationConditions(reporter, npr, fds.map(_.id.name))
-    val vctx = VerificationContext(context, Seq(tsolver), silentReporter)
+    val vctx = VerificationContext(context, Seq(tsolver), context.reporter)
     val vcreport = checkVerificationConditions(vctx, vcs)
 
     if (vcreport.totalValid == vcreport.totalConditions) {
       (sol, true)
+    } else if (vcreport.totalValid + vcreport.totalUnknown == vcreport.totalConditions) {
+      reporter.warning("Solution may be invalid:")
+      (sol, false)
     } else {
       reporter.warning("Solution was invalid:")
       reporter.warning(fds.map(ScalaPrinter(_)).mkString("\n\n"))
@@ -123,7 +129,7 @@ class Synthesizer(val context : LeonContext,
 
     // Create new fundef for the body
     val ret = TupleType(problem.xs.map(_.getType))
-    val res = ResultVariable().setType(ret)
+    val res = Variable(FreshIdentifier("res").setType(ret))
 
     val mapPost: Map[Expr, Expr] =
       problem.xs.zipWithIndex.map{ case (id, i)  =>
@@ -132,7 +138,7 @@ class Synthesizer(val context : LeonContext,
 
     val fd = new FunDef(FreshIdentifier("finalTerm", true), ret, problem.as.map(id => VarDecl(id, id.getType)))
     fd.precondition  = Some(And(problem.pc, sol.pre))
-    fd.postcondition = Some(replace(mapPost, problem.phi))
+    fd.postcondition = Some((res.id, replace(mapPost, problem.phi)))
     fd.body          = Some(sol.term)
 
     val newDefs = sol.defs + fd
