@@ -72,7 +72,7 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       //handling the operators on sets
       //println(vc)
       
-      
+      val time0 : Long = System.currentTimeMillis
       
       //eliminating lets operators
       var collected : List[(Identifier, Expr)] = Nil
@@ -127,6 +127,10 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       
       vc = Implies(setCnsrt, vc)
       
+      val time1 = System.currentTimeMillis
+      
+      
+      
       //let eliminate If then else operators and so on.... FIXME
       //ERROR: it is missing right now
       //println(av)
@@ -153,6 +157,11 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
 
           val t2 = System.nanoTime
           val dt = ((t2 - t1) / 1000000) / 1000.0
+          val time2 = System.currentTimeMillis
+          val processTime = time1 - time0
+          val solvingTime = time2 - time1
+          println("The processing of the problem took " + processTime + " ms.")
+          println("Solving the problem took " + solvingTime + " ms.")
 
           solverResult match {
             case _ if vctx.shouldStop.get() =>
@@ -179,7 +188,11 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
               //the counter example is in the map counterexample
               //take this map and rewrite it into a map, that only constains variables of the initial problem
               //build sets for set variables...
+              val time3 = System.currentTimeMillis
               getCounterExample(counterexample)
+              val time4 = System.currentTimeMillis
+              val getSolutTime = time4 - time3
+              println("Creating a counterexample sets took " + getSolutTime + " ms.")
               reporter.error("==== INVALID ====")
               vcInfo.hasValue = true
               vcInfo.value = Some(false)
@@ -189,6 +202,7 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
               true
 
           }
+          
         }
       }) match {
         case None => {

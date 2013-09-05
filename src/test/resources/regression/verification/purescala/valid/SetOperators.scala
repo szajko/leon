@@ -2,7 +2,13 @@ import leon.Annotations._
 import leon.Utils._
 
 object TestCase {
-/*  def prob1SAT(A : Set[Int], B : Set[Int], C: Set[Int]) : Boolean = {
+
+/*  def soSimpleUNSAT(A : Set[Int]) : Boolean = {
+    require(A == Set.empty[Int])
+    A.size == 0
+  } holds 
+
+  def prob1SAT(A : Set[Int], B : Set[Int], C: Set[Int]) : Boolean = {
     !(
       (A ++ B).size <= (B ++ C).size
     )
@@ -36,17 +42,10 @@ object TestCase {
     )
   } holds 
   
-  // | A | + | B | <= | A U B | + | A Intersec B |
+  // | A | + | B | != | A U B | + | A Intersec B |
   def prob2UNSAT(A : Set[Int], B : Set[Int]) : Boolean = {
-    !(
-      A.size + B.size != (A ++ B).size + (A & B).size      
-    )
+    (A.size + B.size == (A ++ B).size + (A & B).size)
   } holds
-  
-  def soSimpleSAT(A : Set[Int]) : Boolean = {
-    require(A == Set.empty[Int])
-    A.size == 0
-  } holds 
   
   //|A|=1 ^ |B|=1 ^ |C|=1 ^ |A Intersec B|=1 ^ |A Intersec C|=1 ^ |B Intersec C|=0
   def prob3UNSAT(A : Set[Int], B : Set[Int], C: Set[Int]) : Boolean = {
@@ -58,23 +57,23 @@ object TestCase {
   
   // |A| != 0 ^ A = Set()
   def prob4UNSAT(A : Set[Int]) : Boolean = {
-    !(
-      A.size != 0 && A == Set.empty[Int]      
-    )
+    (A.size == 0 || A != Set.empty[Int])
   } holds
  
   //|A| != 0 => A = Set()) ^ (A = Set() => |A| != 0
   def vc1UNSAT(A : Set[Int]) : Boolean = {
-    !(
-      (A.size == 0 || A == Set.empty[Int]) && ( A != Set.empty[Int] || A.size != 0)         
-    )
+    //!(
+    //  (A.size == 0 || A == Set.empty[Int]) && ( A != Set.empty[Int] || A.size != 0)         
+    //)
+    ((A.size != 0 && A != Set.empty[Int]) || ( A == Set.empty[Int] && A.size == 0))
   } holds 
-
+  
   //!(x16 in S17) ^ |S17  U Set(x16)|!=(|S17| + 1)
-  def vc2UNSAT(A : Set[Int], B : Set[Int]) : Boolean = {
-    !(
-      (A.size == 0 || A == Set.empty[Int]) && ( A != Set.empty[Int] || A.size != 0)         
-    )
+  def vc2UNSAT(x16: Int, S17 : Set[Int], B : Set[Int]) : Boolean = {
+    //!(
+    //   !S17.contains(x16) && (S17 ++ Set(x16)).size != S17.size +1
+    //)
+    (S17.contains(x16) || (S17 ++ Set(x16)).size == S17.size +1 )
   } holds
   
   //x16 in S17 ^ !(x18 in S19) ^  S19 subseteq S20^(x18 in S21)^(x18 in S20) ^ |S19  U Set(x18)| != |S19|+1
@@ -95,9 +94,7 @@ object TestCase {
   
   //| S16 U Set(x17)| > |S16| + 1
   def vc3UNSAT(x17: Int, S16: Set[Int]) : Boolean = {
-    !(
-      (S16 ++ Set(x17)).size > S16.size + 1
-    )
+    ((S16 ++ Set(x17)).size <= S16.size + 1)
   } holds
   
   //S16 subseteq A17 ^ a18 in A17 ^ b19 in A17 ^|S16 U Set(x20)| > |S16| + 1
@@ -182,17 +179,46 @@ object TestCase {
       Oc4529.subsetOf(Oc3032) && (Oc3032 -- OC20).size <= 1 && Oc3032.subsetOf(Oc1633) &&
       (Oc1633 -- Oc3032).size <= S24131.size && (Oc1633 -- OC20).size > S14230.size 
     )
+  } holds
+  
+  //l116 != nul17 ^ l116 != ths18 ^ ths18 != nul17 ^ ths18 in L19 ^ ths18 in OC20 ^ 
+  //l116 in L19 ^ l116 in OC20 ^ Oc7421 = OC20^ L7322 = S23 ^ OC20 subseteq Oc7421 ^ 
+  //Oc6025 = Oc7421 ^ ListContent5926  = L7322 ^ Oc7421 subseteq Oc6025 ^ tmp35727 in OB28 ^ 
+  //tmp35727 in Oc6025 ^ Oc4529 = Oc6025 ^ Oc6025 subseteq Oc4529^ Oc4529 = OC20 ^ 
+  //tmp35727 in S14230 ^ S24131 = S14230 Intersec Compl( Set(tmp35727)) ^ | Oc3032 Intersec Compl(Oc4529)| <= 1 ^ 
+  //Oc4529 subseteq Oc3032 ^ | Oc3032 Intersec Compl(OC20)| <= 1 ^ Oc3032 subseteq Oc1633 ^ 
+  //| Oc1633 Intersec Compl(Oc3032) | <= |S24131| ^ | Oc1633 Intersec Compl(OC20)| >= |S14230| 
+  def vc6bSAT(l116: Int, nul17: Int, ths18: Int, tmp35727: Int, L19: Set[Int], OC20: Set[Int], OB28: Set[Int] , Oc7421: Set[Int], L7322: Set[Int], S23: Set[Int], Oc6025: Set[Int], ListContent5926: Set[Int], Oc4529: Set[Int], S24131: Set[Int], Oc3032: Set[Int], Oc1633: Set[Int], S14230: Set[Int] ) : Boolean = {
+    !(
+      l116!= nul17 && l116 != ths18 && ths18 != nul17 && L19.contains(ths18) && OC20.contains(ths18) &&
+      L19.contains(l116) && OC20.contains(l116) && Oc7421 == OC20 && L7322 == S23 && OC20.subsetOf(Oc7421) &&
+      Oc6025 == Oc7421 && ListContent5926 == L7322 && Oc7421.subsetOf(Oc6025) && OB28.contains(tmp35727) &&
+      Oc6025.contains(tmp35727) && Oc4529 == Oc6025 && Oc6025.subsetOf(Oc4529) && Oc4529 == OC20 &&
+      S14230.contains(tmp35727) && S24131 == S14230 -- Set(tmp35727) && (Oc3032 -- Oc4529).size <= 1 &&
+      Oc4529.subsetOf(Oc3032) && (Oc3032 -- OC20).size <= 1 && Oc3032.subsetOf(Oc1633) &&
+      (Oc1633 -- Oc3032).size <= S24131.size && (Oc1633 -- OC20).size >= S14230.size 
+    )
+  } holds
+  
+  //l116 != nul17 ^ l116 != ths18 ^ ths18 != nul17 ^ ths18 in L19 ^ ths18 in OC20 ^ 
+  //l116 in L19 ^ l116 in OC20 ^ Oc7421 = OC20 ^ L7322 = S23 ^ OC20 subseteq Oc7421 ^ 
+  //Oc6025 = Oc7421 ^ ListContent5926 = L7322 ^ Oc7421 subseteq Oc6025 ^ tmp35727 in OB28 ^ 
+  //tmp35727 in Oc6025 ^ Oc4529 = Oc6025 ^ Oc6025 subseteq Oc4529 ^  Oc4529  = OC20 ^ 
+  
+  //S24130 = S14231 Intersec Compl(Set(tmp35727)) ^ |Oc3032 Intersec Compl(Oc4529)| <= 1 ^ 
+  //Oc4529 subseteq Oc3032 ^ |Oc3032 Intersec Compl(OC20)| <= 1 ^ Oc3032 subseteq Oc1633 ^ 
+  //|Oc1633 Intersec Compl(Oc3032) | <= |S24130| ^ | Oc1633 Intersec Compl(OC20)| > |S14231|
+  def vc6cSAT(l116: Int, nul17: Int, ths18: Int, tmp35727: Int, L19: Set[Int], OC20: Set[Int], OB28: Set[Int] , Oc7421: Set[Int], L7322: Set[Int], S23: Set[Int], Oc6025: Set[Int], ListContent5926: Set[Int], Oc4529: Set[Int], S24130: Set[Int], S24131: Set[Int], S14231: Set[Int] , Oc3032: Set[Int], Oc1633: Set[Int], S14230: Set[Int] ) : Boolean = {
+    !(
+      l116!= nul17 && l116 != ths18 && ths18 != nul17 && L19.contains(ths18) && OC20.contains(ths18) &&
+      L19.contains(l116) && OC20.contains(l116) && Oc7421 == OC20 && L7322 == S23 && OC20.subsetOf(Oc7421) &&
+      Oc6025 == Oc7421 && ListContent5926 == L7322 && Oc7421.subsetOf(Oc6025) && OB28.contains(tmp35727) &&
+      Oc6025.contains(tmp35727) && Oc4529 == Oc6025 && Oc6025.subsetOf(Oc4529) && Oc4529 == OC20 &&
+      S24130 == S14231 -- Set(tmp35727) && (Oc3032 -- Oc4529).size <= 1 &&
+      Oc4529.subsetOf(Oc3032) && (Oc3032 -- OC20).size <= 1 && Oc3032.subsetOf(Oc1633) &&
+      (Oc1633 -- Oc3032).size <= S24130.size && (Oc1633 -- OC20).size > S14230.size 
+    )
   } holds */
-  
-  
-  
-/*  test("Formula vc6b"){
-    unitTest("""l116 != nul17 ^ l116 != ths18 ^ ths18 != nul17 ^ ths18 in L19 ^ ths18 in OC20 ^ l116 in L19 ^ l116 in OC20 ^ Oc7421 = OC20^ L7322 = S23 ^ OC20 subseteq Oc7421 ^ Oc6025 = Oc7421 ^ ListContent5926  = L7322 ^ Oc7421 subseteq Oc6025 ^ tmp35727 in OB28 ^ tmp35727 in Oc6025 ^ Oc4529 = Oc6025 ^ Oc6025 subseteq Oc4529^ Oc4529 = OC20 ^ tmp35727 in S14230 ^ S24131 = S14230 Intersec Compl( Set(tmp35727)) ^ | Oc3032 Intersec Compl(Oc4529)| <= 1 ^ Oc4529 subseteq Oc3032 ^ | Oc3032 Intersec Compl(OC20)| <= 1 ^ Oc3032 subseteq Oc1633 ^ | Oc1633 Intersec Compl(Oc3032) | <= |S24131| ^ | Oc1633 Intersec Compl(OC20)| >= |S14230|""", true, "Formula vc6b")
-  }
-
-  test("Formula vc6c"){
-    unitTest("""l116 != nul17 ^ l116 != ths18 ^ ths18 != nul17 ^ ths18 in L19 ^ ths18 in OC20 ^ l116 in L19 ^ l116 in OC20 ^ Oc7421 = OC20 ^ L7322 = S23 ^ OC20 subseteq Oc7421 ^ Oc6025 = Oc7421 ^ ListContent5926 = L7322 ^ Oc7421 subseteq Oc6025 ^ tmp35727 in OB28 ^ tmp35727 in Oc6025 ^ Oc4529 = Oc6025 ^ Oc6025 subseteq Oc4529 ^  Oc4529  = OC20 ^ S24130 = S14231 Intersec Compl(Set(tmp35727)) ^ |Oc3032 Intersec Compl(Oc4529)| <= 1 ^ Oc4529 subseteq Oc3032 ^ |Oc3032 Intersec Compl(OC20)| <= 1 ^ Oc3032 subseteq Oc1633 ^ |Oc1633 Intersec Compl(Oc3032) | <= |S24130| ^ | Oc1633 Intersec Compl(OC20)| > |S14231|""", true, "Formula vc6c")
-  }*/
   
   //Test the program with formulas containing min-max constraints
   
@@ -211,9 +237,9 @@ object TestCase {
     !(
       (A -- B).min == (B -- A).min && (A -- B).size == 2
     )
-  } holds
+  } holds 
 
-  //A = B1 U B2 U B3 ^ Min(B1) < Max(B2) ^ Min(B2) < Max(B3) ^  |B1| = |B2| ^ |B2| = |B3| ^
+ //A = B1 U B2 U B3 ^ Min(B1) < Max(B2) ^ Min(B2) < Max(B3) ^  |B1| = |B2| ^ |B2| = |B3| ^
   //|A| = 12 ^ Min(A) = 1 ^ Max(A) = 12 ^ |B1|>0 ^ |B2|>0 ^ |B3|>0
   def mTriPart1SAT(A: Set[Int], B1: Set[Int], B2: Set[Int], B3: Set[Int]) : Boolean = {
     !(
@@ -222,15 +248,17 @@ object TestCase {
       B2.size > 0 && B3.size > 0
     )
   } holds 
-
-  // A => B as !A || B  
+ 
   //|Left|>0 ^ |Right| > 0 ^ !((Max(Left) < value ^ value < Min(Right)  ^ element< value) => 
   //=> (element in (Left U Value U Right) <=> element in Left)) ^ Set(value) = Value
   def mBinFind2UNSAT(value: Int, element: Int,  Left: Set[Int], Right: Set[Int], Valuee: Set[Int]) : Boolean = {
-    !(
-      Left.size > 0 && Right.size > 0 && !(!( Left.max < value && value < Right.min && element < value) ||
-      ((Left ++ Valuee ++ Right).contains(element) == Left.contains(element) )) && Set(value) == Valuee
+    require(
+      Left.size > 0 && Right.size > 0 && Set(value) == Valuee && 
+      Left.max < value && 
+      value < Right.min && 
+      element < value 
     )
+      (Left ++ Valuee ++ Right).contains(element) == Left.contains(element) 
   } holds 
   
   // A => B as !A || B  
@@ -241,9 +269,8 @@ object TestCase {
       Left.size > 0 && Right.size > 0 && (!( Left.max < value && value < Right.min && element < value) ||
       ((Left ++ Valuee ++ Right).contains(element) == Left.contains(element) )) && Set(value) == Valuee
     )
-  } holds
-  
-  // A => B as !A || B  
+  } holds 
+   
   //|OldAbove|> 0 ^ |NewAbove| > 0 ^ !((OldAbove = Set() v pivot < Min(OldAbove)  ^ !(e <= pivot) ^
   //NewAbove = OldAbove U Set(e)) => pivot < Min(NewAbove))""", false, "Pivot_3")
   def mPivot3UNSAT(pivot: Int, e: Int,  OldAbove: Set[Int], NewAbove: Set[Int]) : Boolean = {
@@ -256,21 +283,9 @@ object TestCase {
     )
     pivot < NewAbove.min
   } holds 
-  
-  // A => B as !A || B  
-  //|OldAbove|> 0 ^ |NewAbove| > 0 ^ !((OldAbove = Set() v pivot < Min(OldAbove)  ^ !(e <= pivot) ^
-  //NewAbove = OldAbove U Set(e)) => pivot < Min(NewAbove))""", false, "Pivot_3")
-  def newProblem(x: Int, y: Int, A: Set[Int], B: Set[Int]) : Boolean = {
-    require (
-      A.contains(x) && 
-      B.contains(y) && 
-      A.max < B.min
-    )
-      x < y
-  } holds */
 
   
-  /*// A => B as !A || B  
+  // A => B as !A || B  
   //|OldAbove|> 0 ^ |NewAbove| > 0 ^ ((OldAbove = Set() v pivot < Min(OldAbove)  ^ !(e <= pivot) 
   //^ NewAbove = OldAbove U Set(e)) => pivot < Min(NewAbove))
   def mNegPivot3SAT(pivot: Int, e: Int,  OldAbove: Set[Int], NewAbove: Set[Int]) : Boolean = {
@@ -279,15 +294,20 @@ object TestCase {
       !( e <= pivot ) && NewAbove == (OldAbove ++ Set(e))) ||
        pivot < NewAbove.min)
     )
-  } holds
-  
-  // A => B as !A || B 
+  } holds 
+   
   //|OldSet| > 0 ^ !((NewSet = OldSet U Set(large) ^ large >= Max(OldSet)) => Max(NewSet) = large)
   def mAddSup4UNSAT(large: Int,  OldSet: Set[Int], NewSet: Set[Int]) : Boolean = {
-    !(
-      OldSet.size > 0 && !(!(NewSet == (OldSet ++ Set(large)) && large >= OldSet.max) || NewSet.max == large)
+    //!(
+    //  OldSet.size > 0 && !(!(NewSet == (OldSet ++ Set(large)) && large >= OldSet.max) || NewSet.max == large)
+    //)
+    require(
+      OldSet.size > 0 && 
+      NewSet == (OldSet ++ Set(large)) && 
+      large >= OldSet.max
     )
-  } holds
+    NewSet.max == large
+  } holds 
   
   // A => B as !A || B 
   //|OldSet| > 0 ^ ((NewSet = OldSet U Set(large) ^ large >= Max(OldSet)) => Max(NewSet) = large)
@@ -295,14 +315,19 @@ object TestCase {
     !(
       OldSet.size > 0 && (!(NewSet == (OldSet ++ Set(large)) && large >= OldSet.max) || NewSet.max == large)
     )
-  } holds*/
+  } holds 
   
-  // A => B as !A || B 
   //|OldSet| > 0 ^ !((NewSet = OldSet U Set(large) ^ large > Max(OldSet)) => Max(NewSet) >= Max(OldSet))
   def mAddSup5UNSAT(large: Int,  OldSet: Set[Int], NewSet: Set[Int]) : Boolean = {
-    !(
-      OldSet.size > 0 && !(!(NewSet == (OldSet ++ Set(large)) && large >= OldSet.max) || NewSet.max >= OldSet.max)
+    //!(
+    //  OldSet.size > 0 && !(!(NewSet == (OldSet ++ Set(large)) && large >= OldSet.max) || NewSet.max >= OldSet.max)
+    //)
+    require(
+      OldSet.size > 0 && 
+      NewSet == (OldSet ++ Set(large)) && 
+      large >= OldSet.max 
     )
+    NewSet.max >= OldSet.max
   } holds
   
   // A => B as !A || B 
@@ -313,7 +338,7 @@ object TestCase {
     )
   } holds 
   
-/*  // A => B as !A || B 
+  // A => B as !A || B 
   //|OldSet|>0 ^ !((NewSet = Oldset U Set(large) ^ large +1 >= Max(OldSet)) => Max(NewSet) = large)
   def mAddSupLS6SAT(large: Int,  OldSet: Set[Int], NewSet: Set[Int]) : Boolean = {
     !(
@@ -321,26 +346,57 @@ object TestCase {
     )
   } holds */
   
-/*           
-  test("UneqPart_7"){
-    unitTest(""" !((Set = Elem U Rest ^ elem >= Max(Rest)) => Max(Set) = elem) ^ Elem = Set(elem) """, false, "UneqPart_7")
-  }
-  test("Neg UneqPart_7"){
-    unitTest(""" ((Set = Elem U Rest ^ elem >= Max(Rest)) => Max(Set) = elem) ^ Elem = Set(elem) """, true, "Neg UneqPart_7")
-  }        
+  //!((Set = Elem U Rest ^ elem >= Max(Rest)) => Max(Set) = elem) ^ Elem = Set(elem)
+  def mUneqPart7UNSAT(elem: Int,  mySet: Set[Int], ElemSet: Set[Int], Rest: Set[Int]) : Boolean = {
+    require(
+      mySet == ElemSet ++ Rest &&
+      elem >= Rest.max && 
+      ElemSet == Set(elem) 
+    )
+    mySet.max == elem
+  } holds
   
-  test("Zig-zig_8"){
+  //((Set = Elem U Rest ^ elem >= Max(Rest)) => Max(Set) = elem) ^ Elem = Set(elem)
+  def mNegUneqPart7SAT(elem: Int,  mySet: Set[Int], ElemSet: Set[Int], Rest: Set[Int]) : Boolean = {
+    !(
+      ! ( mySet == ElemSet ++ Rest &&
+      elem >= Rest.max && 
+      ElemSet == Set(elem) ) ||   mySet.max == elem
+    )
+  } holds 
+  
+/*           
+  test("mZigZig8UNSAT"){
     unitTest("""!( (Max(LeftTree) < value1 ^ value1 < Min(MiddleTree) ^ Max(LeftTree U Value1 U MiddleTree) < Min(Value2) ^ value1 < value2 ^ value2 < Min(RightTree) ^ |LeftTree|>0 ^ |MiddleTree| > 0 ^ |RightTree| > 0^ Value1 = Set(value1) ^ Value2 = Set(value2)) => (Min(LeftTree) < value1 ^ Min(Value1) < Max(MiddleTree U Value2 U RightTree) ^ Max(MiddleTree) < value2 ^ value2 < Min(RightTree)))""", false, "Zig-zig 8")
   }
-  test("Neg Zig-zig_8"){
+  test("mNegZigZig8SAT"){
     unitTest("""( (Max(LeftTree) < value1 ^ value1 < Min(MiddleTree) ^ Max(LeftTree U Value1 U MiddleTree) < Min(Value2) ^ value1 < value2 ^ value2 < Min(RightTree) ^ |LeftTree|>0 ^ |MiddleTree| > 0 ^ |RightTree| > 0^ Value1 = Set(value1) ^ Value2 = Set(value2)) => (Min(LeftTree) < value1 ^ Min(Value1) < Max(MiddleTree U Value2 U RightTree) ^ Max(MiddleTree) < value2 ^ value2 < Min(RightTree)))""", true, "Neg Zig-zig_8")
   }
+*/
   
-  test("EqPart_9"){
-    unitTest("""!((A U B = C ^ Max(A) < Min(B)) <=> (A subseteq C ^ B = C \ A ^ Max(A) < Min(B))) """, false, "EqPart_9")
-  }
-  test("Neg EqPart_9"){
-    unitTest("""((A U B = C ^ Max(A) < Min(B)) <=> (A subseteq C ^ B = C \ A ^ Max(A) < Min(B))) """, true, "Neg EqPart_9")
-  }*/
+  //!((A U B = C ^ Max(A) < Min(B)) <=> (A subseteq C ^ B = C \ A ^ Max(A) < Min(B)))
+  def mEqPart9UNSAT(elem: Int,  A: Set[Int], B: Set[Int], C: Set[Int]) : Boolean = {
+    (A ++ B == C && A.max < B.min) == (A.subsetOf(C) && B == C -- A && A.max < B.min)
+  } holds
+  
+  //((A U B = C ^ Max(A) < Min(B)) <=> (A subseteq C ^ B = C \ A ^ Max(A) < Min(B)))
+  def mNegEqPart9SAT(elem: Int,  A: Set[Int], B: Set[Int], C: Set[Int]) : Boolean = {
+    !(A ++ B == C && A.max < B.min) == (A.subsetOf(C) && B == C -- A && A.max < B.min)
+  } holds
+  
+  def mAddSup5mmUNSAT(large: Int,  OldSet: Set[Int], NewSet: Set[Int]) : Boolean = {
+    !(
+      OldSet.size > 0 && NewSet == OldSet ++ Set(large) && NewSet.max < OldSet.max
+    )
+  } holds
+  
+  def newProblemUNSAT(x: Int, y: Int, A: Set[Int], B: Set[Int]) : Boolean = {
+    require (
+      A.contains(x) && 
+      B.contains(y) && 
+      A.max < B.min
+    )
+      x < y
+  } holds 
   
 }
