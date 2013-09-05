@@ -75,7 +75,7 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       //handling the operators on sets
       //println(vc)
       
-      
+      val time0 : Long = System.currentTimeMillis
       
       //eliminating lets operators
       var collected : List[(Identifier, Expr)] = Nil
@@ -129,6 +129,10 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       }
       
       vc = Implies(setCnsrt, vc)
+      
+      val time1 = System.currentTimeMillis
+      
+      
       
       //let eliminate If then else operators and so on.... FIXME
       //ERROR: it is missing right now

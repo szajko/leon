@@ -91,7 +91,7 @@ object ProceedSetOperators {
       mToRegion = Map.empty
       regionToBMap = Map.empty
       inf = getVar("inf")
-      mInf= getVar("minusInf")
+      mInf= getVar("mInf")
 
       //lift all constant sets that are not variables
       //and eliminate the following operators:
@@ -998,7 +998,7 @@ object ProceedSetOperators {
         //m=>o_(j+1) => c_i^j=0
         //M<=o_j => c_i^j=0
         for(ii<-0 to numOs){
-          val someC: Expr = getVar(("c"+inputVar.tail+"_"+ii+"_"+serialNumber))
+          val someC: Expr = getVar(("c"+inputVar+"_"+ii+"_"+serialNumber))
           toAndo += GreaterEquals(someC,zero)
           outputSet += someC
           //add constraints, when it is zero
@@ -1350,7 +1350,6 @@ object ProceedSetOperators {
           }
           else{
           val card: Int = getValueInt(getName("k#", reg._1, reg._2, minMaxIndex))
-          
           //if one minMax is defined
           if (mM.size == 1 && card > 0){
             mM.foreach(mMm => {
@@ -1407,7 +1406,10 @@ object ProceedSetOperators {
             //get the corresponding k value
             while( getCommonCurrentElements(reg._1, reg._2).size != card){
               val freshE : Int = getSmallFreshElem(getValueInt("o#_1_" + minMaxIndex))
-              (reg._1).foreach(set => addElement(set, freshE))
+              
+              (reg._1).foreach(set => {
+                addElement(set, freshE)})
+              
             }
           }
           else if (mM.size > 2)
@@ -1459,7 +1461,12 @@ object ProceedSetOperators {
           //count the sngs in this region
           val sngSet : Set[Int] = getCommonCurrentElements(containing, nonContaining)
           if (card-sngSet.size >0)
-          for(j<-0 to (card-sngSet.size)){
+          //println("containing: " +containing + " nonContaining " + nonContaining)
+          for(j<-1 to (card-sngSet.size)){
+            //println("j : " + j + " card-sngSet.size " + (card - sngSet.size))
+            //println("regionElements: " + regionElements)
+            //println("globalSngSet: " + globalSngSet)
+            //println("sngSet: " + sngSet)
             val elem : Int = (regionElements -- globalSngSet).head
             regionElements -= elem
             (coNonReadies._1).foreach(b=> addElement(b, elem))
@@ -1534,7 +1541,7 @@ object ProceedSetOperators {
       var ii : Int = smaller + 1
       while(!found && ii < greater){
         if (! usedElems.contains(ii)){
-          jj == ii
+          jj = ii
           usedElems += jj
           found = true
         }
@@ -1551,7 +1558,7 @@ object ProceedSetOperators {
       var ii : Int = getValueInt("mInf") -1
       while(!found){
         if (! usedElems.contains(ii)){
-          jj == ii
+          jj = ii
           usedElems += jj
           found = true
         }
@@ -1566,7 +1573,7 @@ object ProceedSetOperators {
       var ii : Int = getValueInt("inf") +1
       while(!found){
         if (! usedElems.contains(ii)){
-          jj == ii
+          jj = ii
           usedElems += jj
           found = true
         }
