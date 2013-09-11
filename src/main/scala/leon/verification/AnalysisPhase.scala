@@ -13,7 +13,7 @@ import solvers._
 import solvers.z3._
 
 //what I added
-import ProceedSetOperators._
+import solvers.bapaminmax.ProceedSetOperators._
 
 import scala.collection.mutable.{Set => MutableSet}
 

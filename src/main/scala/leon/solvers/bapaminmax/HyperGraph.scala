@@ -1,7 +1,8 @@
 /* Copyright 2009-2013 EPFL, Lausanne */
 
 package leon
-package verification
+package solvers
+package bapaminmax
 
 import purescala.Trees._
 import ProceedSetOperators.writeCnstrsForClusters
