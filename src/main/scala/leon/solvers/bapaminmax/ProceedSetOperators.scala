@@ -13,9 +13,6 @@ import purescala.TypeTrees._
 //my things
 import HyperGraph._
 
-import solvers.{Solver,TrivialSolver,TimeoutSolver}
-import solvers.z3.FairZ3Solver
-
 import scala.collection.mutable.{Set => MutableSet}
 
 object ProceedSetOperators {
