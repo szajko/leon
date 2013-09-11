@@ -12,7 +12,7 @@ import purescala.TypeTrees._
 import solvers._
 import solvers.z3._
 
-//what I added
+// Temporary for Anikó's work.
 import solvers.bapaminmax.ProceedSetOperators._
 
 import scala.collection.mutable.{Set => MutableSet}
@@ -72,72 +72,11 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       val funDef = vcInfo.funDef
       var vc = vcInfo.condition
       
-      //handling the operators on sets
-      //println(vc)
-      
       val time0 : Long = System.currentTimeMillis
-      
-      //eliminating lets operators
-      var collected : List[(Identifier, Expr)] = Nil
 
-      def letCollector(e : Expr) : Expr = e match {
-	case Let(i, e, b) => collected = (i, e) :: collected; b
-	case other => other
-      }
+      vc = leon.solvers.bapaminmax.Transformations.rewriteVC(vc)
 
-      val withoutLets : Expr = simplePostTransform(letCollector)(vc)
-
-      val asEqualities : List[Expr] = collected.map {
-	case (i, e) => Equals(Variable(i), e)
-      }
-
-      val woletvc =  And(withoutLets :: asEqualities)
-           
-      //collect the expression on sets      
-      var setConstraints : Set[Expr]= Set.empty 
-      
-      def collectSetOperator(t: Expr)  = t  match {
-        case SetEquals(l,r) => {
-          //println("A SetEquals operator is found.")
-          //println(l.getType)
-          setConstraints += t; IntLiteral(0)
-        }
-        case ElementOfSet(_, _) => setConstraints += t; IntLiteral(0)
-        case SubsetOf(_, _) => setConstraints += t; IntLiteral(0)
-        case SetIntersection(_,_)=> setConstraints += t; IntLiteral(0)
-        case SetMin(_) => setConstraints += t; IntLiteral(0)
-        case SetMax(_) => setConstraints += t; IntLiteral(0)
-        case SetCardinality(_) => setConstraints += t; IntLiteral(0)
-	case SetUnion(_,_)=> setConstraints += t; IntLiteral(0)
-	case SetDifference(_, _) => setConstraints += t; IntLiteral(0)
-	case FiniteSet(_) => setConstraints += t; IntLiteral(0)
-        case _ => t
-      }
-      
-      val myPrinter : Expr=>Expr = simplePreTransform(e => { collectSetOperator(e) })
-      
-      val s = myPrinter(woletvc)
-      
-      var setCnsrt: Expr = BooleanLiteral(true)
-      if (! setConstraints.isEmpty){
-        //println(woletvc)
-      
-        println("----------------------The collected set expresssiona are:----------------------")
-	println(setConstraints)
-	setCnsrt = proceedSets(setConstraints)
-	//println("All added constraints------------------------" + setCnsrt)
-      }
-      
-      vc = Implies(setCnsrt, vc)
-      
       val time1 = System.currentTimeMillis
-      
-      
-      
-      //let eliminate If then else operators and so on.... FIXME
-      //ERROR: it is missing right now
-      //println(av)
-      
       
       reporter.info("Now considering '" + vcInfo.kind + "' VC for " + funDef.id + "...")
       reporter.debug("Verification condition (" + vcInfo.kind + ") for ==== " + funDef.id + " ====")
@@ -175,6 +114,7 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
           case Some(false) =>
             reporter.error("Found counter-example : ")
             reporter.error(counterexample.toSeq.sortBy(_._1.name).map(p => p._1 + " -> " + p._2).mkString("\n"))
+            leon.solvers.bapaminmax.ProceedSetOperators.getCounterExample(counterexample)
             reporter.error("==== INVALID ====")
             vcInfo.hasValue = true
             vcInfo.value = Some(false)
