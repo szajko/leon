@@ -210,7 +210,7 @@ class HyperGraph{
      }
 
       def getClustsArrays(): (Array[Set[Expr]], Set[Int]) = {
-        clusters = (minMaxComponents ++ getCardClust()).toArray
+        clusters = (minMaxComponents ++ getCardClust() - Set.empty).toArray
         for(ii<- 0 to clusters.length -1){
           //minMaxComponents contains the min-max nodes
           //chech if this node is in the set of min-max nodes

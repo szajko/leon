@@ -64,9 +64,22 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
   def checkVerificationConditions(vctx: VerificationContext, vcs: Map[FunDef, List[VerificationCondition]]) : VerificationReport = {
     val reporter = vctx.reporter
     val solvers  = vctx.solvers
+    
+    val w = new CSVWriter("testfile")
+    val statHead : String = "name;isValid;procTime;solvTime;getSolTime;"
+    val statHead1 : String = "sngNum;setNum;finitSetNum;cardConstrNum;minMaxConstrNum;clusterNum;minMaxClustNum;"
+    val statHead2 : String = "vennRegNum;componentNum;" 
+    val statHead3 :String = "kNum;mMNum;ENum;ANum;BNum;cNum;oNum"
+    w.writeLine(statHead + statHead1 + statHead2 + statHead3)
 
     for((funDef, vcs) <- vcs.toSeq.sortWith((a,b) => a._1 < b._1); vcInfo <- vcs if !vctx.shouldStop.get()) {
       val funDef = vcInfo.funDef
+      //statistic vars
+      val probName : String = vcInfo.funDef.id.toString + ";"
+      var isValid : String = "VALID;"
+      var processTime = System.currentTimeMillis
+      var solvingTime = System.currentTimeMillis
+      var getSolutTime = processTime - processTime
       var vc = vcInfo.condition
       
       //handling the operators on sets
@@ -139,6 +152,7 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       reporter.info("Now considering '" + vcInfo.kind + "' VC for " + funDef.id + "...")
       reporter.info("Verification condition (" + vcInfo.kind + ") for ==== " + funDef.id + " ====")
       reporter.info(simplifyLets(vc))
+      
 
       // try all solvers until one returns a meaningful answer
       var superseeded : Set[String] = Set.empty[String]
@@ -158,8 +172,8 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
           val t2 = System.nanoTime
           val dt = ((t2 - t1) / 1000000) / 1000.0
           val time2 = System.currentTimeMillis
-          val processTime = time1 - time0
-          val solvingTime = time2 - time1
+          processTime = time1 - time0
+          solvingTime = time2 - time1
           println("The processing of the problem took " + processTime + " ms.")
           println("Solving the problem took " + solvingTime + " ms.")
 
@@ -188,10 +202,11 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
               //the counter example is in the map counterexample
               //take this map and rewrite it into a map, that only constains variables of the initial problem
               //build sets for set variables...
+              isValid = "INVALID;"
               val time3 = System.currentTimeMillis
               getCounterExample(counterexample)
               val time4 = System.currentTimeMillis
-              val getSolutTime = time4 - time3
+              getSolutTime = time4 - time3
               println("Creating a counterexample sets took " + getSolutTime + " ms.")
               reporter.error("==== INVALID ====")
               vcInfo.hasValue = true
@@ -211,6 +226,8 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
         }
         case _ =>
       }
+      val stat1 : String = probName + isValid + processTime + ";" + solvingTime + ";" + getSolutTime + ";"
+      w.writeLine( stat1 + get1SCVLine() )
     }
 
     val report = new VerificationReport(vcs)
