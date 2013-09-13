@@ -11,9 +11,7 @@ import purescala.TypeTrees._
 
 import solvers._
 import solvers.z3._
-
-// Temporary for Anikó's work.
-import solvers.bapaminmax.ProceedSetOperators._
+import solvers.bapaminmax._
 
 import scala.collection.mutable.{Set => MutableSet}
 
@@ -25,7 +23,8 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
 
   override val definedOptions : Set[LeonOptionDef] = Set(
     LeonValueOptionDef("functions", "--functions=f1:f2", "Limit verification to f1,f2,..."),
-    LeonValueOptionDef("timeout",   "--timeout=T",       "Timeout after T seconds when trying to prove a verification condition.")
+    LeonValueOptionDef("timeout",   "--timeout=T",       "Timeout after T seconds when trying to prove a verification condition."),
+    LeonFlagOptionDef("bapa", "--bapa", "Use Anikó's QFBAPA< solver.")
   )
 
   def generateVerificationConditions(reporter: Reporter, program: Program, functionsToAnalyse: Set[String]): Map[FunDef, List[VerificationCondition]] = {
@@ -70,11 +69,9 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
 
     for((funDef, vcs) <- vcs.toSeq.sortWith((a,b) => a._1 < b._1); vcInfo <- vcs if !interruptManager.isInterrupted()) {
       val funDef = vcInfo.funDef
-      var vc = vcInfo.condition
+      val vc = vcInfo.condition
       
       val time0 : Long = System.currentTimeMillis
-
-      vc = leon.solvers.bapaminmax.Transformations.rewriteVC(vc)
 
       val time1 = System.currentTimeMillis
       
@@ -114,6 +111,7 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
           case Some(false) =>
             reporter.error("Found counter-example : ")
             reporter.error(counterexample.toSeq.sortBy(_._1.name).map(p => p._1 + " -> " + p._2).mkString("\n"))
+            // FIXME : REMOVE
             leon.solvers.bapaminmax.ProceedSetOperators.getCounterExample(counterexample)
             reporter.error("==== INVALID ====")
             vcInfo.hasValue = true
@@ -139,6 +137,7 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
   def run(ctx: LeonContext)(program: Program) : VerificationReport = {
     var functionsToAnalyse   = Set[String]()
     var timeout: Option[Int] = None
+    var useBAPA : Boolean    = false
 
     for(opt <- ctx.options) opt match {
       case LeonValueOption("functions", ListValue(fs)) =>
@@ -147,14 +146,25 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
       case v @ LeonValueOption("timeout", _) =>
         timeout = v.asInt(ctx)
 
+      case LeonFlagOption("bapa", s) =>
+        useBAPA = s
+
       case _ =>
     }
 
     val reporter = ctx.reporter
 
-    val fairZ3 = new FairZ3SolverFactory(ctx, program)
+    lazy val fairZ3 = new FairZ3SolverFactory(ctx, program)
 
-    val baseSolvers : Seq[SolverFactory[Solver]] = fairZ3 :: Nil
+    lazy val bapa = new BAPAMinMaxSolverFactory(new UninterpretedZ3SolverFactory(ctx, program))
+
+    val baseSolvers : Seq[SolverFactory[Solver]] = {
+      if(useBAPA) {
+        bapa :: Nil
+      } else {
+        fairZ3 :: Nil
+      }
+    }
 
     val solvers: Seq[SolverFactory[Solver]] = timeout match {
       case Some(t) =>

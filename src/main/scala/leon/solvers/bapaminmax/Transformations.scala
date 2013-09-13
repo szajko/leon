@@ -67,7 +67,7 @@ object Transformations {
       //println("All added constraints------------------------" + setCnsrt)
     }
     
-    vc = Implies(setCnsrt, vc)
+    vc = And(setCnsrt, vc)
     
     vc
   }
