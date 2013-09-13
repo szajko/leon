@@ -111,8 +111,6 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
           case Some(false) =>
             reporter.error("Found counter-example : ")
             reporter.error(counterexample.toSeq.sortBy(_._1.name).map(p => p._1 + " -> " + p._2).mkString("\n"))
-            // FIXME : REMOVE
-            leon.solvers.bapaminmax.ProceedSetOperators.getCounterExample(counterexample)
             reporter.error("==== INVALID ====")
             vcInfo.hasValue = true
             vcInfo.value = Some(false)

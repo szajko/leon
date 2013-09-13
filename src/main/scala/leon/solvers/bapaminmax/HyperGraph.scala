@@ -221,7 +221,9 @@ class HyperGraph {
       
       //st is the pr-String
       //if containedSets == Set.empty, write constraints for the whole graph
-      def getEqualities(st: String, containedSets: Set[Expr]): Expr = {
+      def getEqualities(st: String, containedSets: Set[Expr])(implicit meta : EncodingInformation): Expr = {
+        import meta._
+
         var toAndConstr : Set[Expr] = Set.empty
         //find out, for which set variables should we write constraints
         var toUseVars: Set[Expr] = Set.empty

@@ -16,11 +16,13 @@ class BAPAMinMaxSolverFactory[S <: Solver](sf : SolverFactory[S]) extends Rewrit
   val name : String = "BAPA<"
   
   def rewriteCnstr(expression : Expr) : (Expr,EncodingInformation) = {
-    val newExpression = Transformations.rewriteVC(expression)
-    (newExpression, new EncodingInformation())
+    val (newExpression, meta) = Transformations.rewriteVC(expression)
+    (newExpression, meta)
   }
 
   def reconstructModel(model : Map[Identifier,Expr], meta : EncodingInformation) : Map[Identifier,Expr] = {
+    // FIXME : REMOVE
+    ProceedSetOperators.getCounterExample(model)(meta)
     model
   }
 }

@@ -13,51 +13,9 @@ import purescala.TypeTrees._
 import scala.collection.mutable.{Set => MutableSet}
 
 object ProceedSetOperators {
+    def proceedSets(e: Set[Expr])(implicit meta : EncodingInformation) : Expr = {
+      import meta._
 
-    //contains all "in" operators, all of them starts with in
-    var elementsOf : Set[Expr] = Set.empty
-    //contains all constant sets
-    var constantSets : Set[Expr] = Set.empty
-    var sideConstraints : Set[Expr] = Set.empty
-    var globalSideConstraints : Set[Expr] = Set.empty
-    // Boolean variables
-    var isEmptySet: Boolean = false
-    val myEmptySet = Variable(FreshIdentifier("EmptySet", true).setType(SetType(Int32Type)))
-    var inf : Expr = IntLiteral(0)
-    var mInf: Expr = IntLiteral(0)
-    var isMinMax: Boolean = false
-    
-    //collect Dependencies
-    var cDep: Set[Set[Expr]] = Set.empty
-    var mDep: Set[Set[Expr]] = Set.empty
-    //and the original formula
-    var cOrig: Set[Expr] = Set.empty
-    var mOrig: Set[Expr] = Set.empty
-    var MOrig: Set[Expr] = Set.empty
-    //containts the elements of constantSets and right sides of element
-    var sngSet: Set[Expr] = Set.empty
-    var sngArray: Array[Expr] = Array.empty
-    //mapping all variables that are defined as Expr
-    var stringToExpr : Map[String, Expr] = Map.empty
-    var finalClusters: Array[Array[Expr]] = Array.empty
-    var globalClusts: Array[Set[Expr]] = Array.empty
-    var globalMinMaxIndicies : Set[Int] = Set.empty
-    //fo handling the singletons
-    var componentToXMap: Map[Set[Expr], Set[Int]] = Map.empty
-    var alfaToRegion: Map[String, (Set[Expr],Set[Expr])] = Map.empty
-    var alfaToVarMap: Map[String, Int] = Map.empty
-    //min-max cluster -> (Set(m...), Set(M...)) 
-    var mClustToM: Map[Set[Expr], (Set[String],Set[String])] = Map.empty
-    //m.. or M.. -> (set containing, set not conctaining)
-    var mToRegion: Map[String, (Set[Expr],Set[Expr])] = Map.empty
-    var regionToBMap: Map[(Set[Expr],Set[Expr]), Set[String]] = Map.empty
-    var serialNumberToNumOsMap : Map[Int, Int] = Map.empty
-
-    
-    //HyperGraph
-    var G = new HyperGraph
-
-    def proceedSets(e: Set[Expr]) : Expr = {
       //initialization
       elementsOf = Set.empty
       constantSets = Set.empty
@@ -139,7 +97,9 @@ object ProceedSetOperators {
      }
 
      
-    def eliminateOperators(formula : Expr) : Unit = {
+    def eliminateOperators(formula : Expr)(implicit meta : EncodingInformation) : Unit = {
+      import meta._
+
       //do not define local variables as this function is called multiple times
     
       def rec(t : Expr) : Unit = t match {
@@ -185,7 +145,8 @@ object ProceedSetOperators {
      //end of liftConstantSets 
   }
   
-   def deMorganCollectDep(formula : Expr) : Unit = {
+   def deMorganCollectDep(formula : Expr)(implicit meta : EncodingInformation) : Unit = {
+      import meta._
       
       //applyDeMorgan
      def rec(t : Expr) : Expr = t match {	
@@ -247,13 +208,17 @@ object ProceedSetOperators {
   }
   
   //select dependencies, which contains all dependencies
-  def filterNecessaryDep(dep: Set[Set[Expr]]) : Set[Set[Expr]] = {
+  def filterNecessaryDep(dep: Set[Set[Expr]])(implicit meta : EncodingInformation) : Set[Set[Expr]] = {
+    import meta._
+
       dep.filter(s1 => !dep.exists(s2 => (s1!=s2 && s1.subsetOf(s2))))
   }
   
   //creating the hyperGraph
   //(cardinality dependencies + singleton set, min-max dependencies)
-  def createClusters(cardDep: Set[Set[Expr]],  minMaxDep: Set[Set[Expr]] ) : (Array[Set[Expr]], Set[Int])  ={ 
+  def createClusters(cardDep: Set[Set[Expr]],  minMaxDep: Set[Set[Expr]] )(implicit meta : EncodingInformation) : (Array[Set[Expr]], Set[Int])  ={ 
+    import meta._
+
     G = new HyperGraph
     G.createHyperGraph(filterNecessaryDep(cardDep))
     //createMinMaxClusters should be called first, as it can modify the cardClusters
@@ -262,7 +227,9 @@ object ProceedSetOperators {
   }
   
   //write constraints for cl1 and cl2
-  def writeCnstrsForClusters(st: String, cl1: Set[Expr], cl2: Set[Expr]): Set[Expr] ={
+  def writeCnstrsForClusters(st: String, cl1: Set[Expr], cl2: Set[Expr])(implicit meta : EncodingInformation): Set[Expr] ={
+    import meta._
+
     var additionalConstr : Set[Expr] = Set.empty
     //find the clusters, if not found-> return -1 -> it should never be the case
     def findCluster(cls1: Set[Expr]): Int = {
@@ -321,7 +288,9 @@ object ProceedSetOperators {
   }
   
   //returns the modified AST and the set of constant set (their cardinality is needed later)
-  def subsAbsMinMax() : Expr ={
+  def subsAbsMinMax()(implicit meta : EncodingInformation) : Expr ={
+    import meta._
+
     var siConstraints: Set[Expr] = Set.empty
     
     cOrig.foreach(a=> {
@@ -398,7 +367,9 @@ object ProceedSetOperators {
   
    //return an AST[Int] substituting a cardinality or min-max values of a region
   //if bothe isCard and isMin are true, it returns cardinality names for min/max constraints!
-  def getRegionAST(st: String, region: Expr, xName: Int) :(Set[String],Set[Expr]) ={
+  def getRegionAST(st: String, region: Expr, xName: Int)(implicit meta : EncodingInformation) :(Set[String],Set[Expr]) ={
+    import meta._
+
     var res: Set[(Set[Expr],Set[Expr])] = Set.empty
     var sideCnstrs: Set[Expr] = Set.empty
     //the Union operator will be on the top of the tree
@@ -500,7 +471,9 @@ object ProceedSetOperators {
 // ---------------------------------------------------------------------  
 //naming functions
   //if both isCard and isMin are true, it returns cardinality names for min/max constraints
-  def getRegName(st: String, setContain: Set[Expr], setNotContain: Set[Expr], clstNum: Int, cluster: Set[Expr]) : Set[String] = { 
+  def getRegName(st: String, setContain: Set[Expr], setNotContain: Set[Expr], clstNum: Int, cluster: Set[Expr])(implicit meta : EncodingInformation) : Set[String] = { 
+    import meta._
+
     //println("set contain: " + setContain + " not contain: " + setNotContain + " cluster: " + cluster)
     var res: Set[String] = Set.empty
     //if (setContain == Set.empty) sys.error("The setContain set cannot be empty in getRegionNames().")
@@ -539,7 +512,9 @@ object ProceedSetOperators {
   //name: k/m/M/mk_clusternumber_1010010
   //if both isCard and isMin are true, it returns cardinality names for min/max constraints
   //long_max = 2^63-1, thus the maximum number of Strings = 62 !! 
-  def getName(st: String, setContaining: Set[Expr], setNotContaining: Set[Expr], clustNum: Int): String ={
+  def getName(st: String, setContaining: Set[Expr], setNotContaining: Set[Expr], clustNum: Int)(implicit meta : EncodingInformation): String ={
+    import meta._
+
   
     if ((setContaining & setNotContaining) != Set.empty)
       sys.error("The input sets in getName() shoud be disjoint.")
@@ -570,7 +545,9 @@ object ProceedSetOperators {
 
   }
   
-  def addTomClustToM(clust: Set[Expr], m: String, isMin: Boolean){
+  def addTomClustToM(clust: Set[Expr], m: String, isMin: Boolean)(implicit meta : EncodingInformation){
+    import meta._
+
     val c = mClustToM.find(a=> (a._1==clust))
     c match {
       case Some(x) => {
@@ -591,7 +568,9 @@ object ProceedSetOperators {
     else 2*pow2(n-1)
   }
   
-  def addStringsAsVars(mySet: Set[String]) : Expr = {
+  def addStringsAsVars(mySet: Set[String])(implicit meta : EncodingInformation) : Expr = {
+    import meta._
+
     val first: String = mySet.head 
     var tree: Expr = getVar(first)
     for (toAdd<-mySet if toAdd!= first){
@@ -600,7 +579,9 @@ object ProceedSetOperators {
     tree  
   }
   
-  def orStringsAsVars(mySet: Set[String]) : Expr = {
+  def orStringsAsVars(mySet: Set[String])(implicit meta : EncodingInformation) : Expr = {
+    import meta._
+
     Or(mySet.map(a=> getVar(a)).toSeq)
     //val first: String = mySet.head 
     //var tree: Expr = getVar(first)
@@ -610,11 +591,15 @@ object ProceedSetOperators {
     //tree  
   }
   
-  def makeNegAndStrings(mySet: Set[String]) : Expr = {
+  def makeNegAndStrings(mySet: Set[String])(implicit meta : EncodingInformation) : Expr = {
+    import meta._
+
     And(mySet.map(a=> Not(getVar(a))).toSeq) 
   }
   
-  def makeAddZ3AST(additional: Set[Expr]): Expr ={
+  def makeAddZ3AST(additional: Set[Expr])(implicit meta : EncodingInformation): Expr ={
+    import meta._
+
 //    else {
       val first: Expr = additional.head
       var res: Expr = first
@@ -630,7 +615,9 @@ object ProceedSetOperators {
   
 //------------------------------------------------------------------------------------------------------
 // auxiliary functions
-   def getVar(str: String) : Expr = {
+   def getVar(str: String)(implicit meta : EncodingInformation) : Expr = {
+    import meta._
+
       //the crated variables may start with 
       //in case of integers: k#, M#, m#, E#
       //in case of booleans: A#, B#, G#
@@ -655,7 +642,9 @@ object ProceedSetOperators {
       }
     }
     
-  def clsToArray(cls: Array[Set[Expr]]): Unit = {
+  def clsToArray(cls: Array[Set[Expr]])(implicit meta : EncodingInformation): Unit = {
+    import meta._
+
     /*for(ii<- 0 to cls.length -1){
       finalClusters(ii) = cls(ii).toArray
     }*/
@@ -674,7 +663,9 @@ object ProceedSetOperators {
     }
   }
   
-  def getIndex(sn: Expr): Int = {
+  def getIndex(sn: Expr)(implicit meta : EncodingInformation): Int = {
+    import meta._
+
     var found: Boolean = false
     var jj: Int = -1
     for(ii<- 0 to sngArray.length-1 if !found) {
@@ -688,7 +679,9 @@ object ProceedSetOperators {
 //-----------------------------------------------------------------
 //produce the seven type of constraints
 //-----------------------------------------------------------------
-  def getTheSevenTypeCnstr(): Expr = {
+  def getTheSevenTypeCnstr()(implicit meta : EncodingInformation): Expr = {
+    import meta._
+
     var eArray : Array[Expr] = Array.empty
 //nagyon fontos, hogy minden változó -inf és inf között legyen FIXME
     var componentESetMap: Map[Set[Expr], Set[String]] = Map.empty
@@ -1277,7 +1270,9 @@ object ProceedSetOperators {
   
   //-------------------------------------------------------------------
   //build sets as counterexample 
-  def getCounterExample(counterexample : Map[Identifier,Expr]) {
+  def getCounterExample(counterexample : Map[Identifier,Expr])(implicit meta : EncodingInformation) {
+    import meta._
+
     //build a map for the needed sets
     var solu : Map[Expr, Set[Int]] = Map.empty
     var usedElems : Set[Int] = Set.empty

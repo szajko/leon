@@ -13,7 +13,7 @@ import purescala.TypeTrees._
 object Transformations {
   import ProceedSetOperators._
 
-  def rewriteVC(expression : Expr) : Expr = {
+  def rewriteVC(expression : Expr) : (Expr,EncodingInformation) = {
     var vc = expression
 
     //eliminating lets operators
@@ -58,17 +58,23 @@ object Transformations {
     val s = myPrinter(woletvc)
     
     var setCnsrt: Expr = BooleanLiteral(true)
+    
+    // This carries all the mutable state that comes from
+    // the encoding into new variables etc.
+    val meta = new EncodingInformation()
+
     if (! setConstraints.isEmpty){
       //println(woletvc)
     
       println("----------------------The collected set expresssiona are:----------------------")
       println(setConstraints)
-      setCnsrt = proceedSets(setConstraints)
+
+      setCnsrt = proceedSets(setConstraints)(meta)
       //println("All added constraints------------------------" + setCnsrt)
     }
     
     vc = And(setCnsrt, vc)
     
-    vc
+    (vc, meta)
   }
 }
