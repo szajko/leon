@@ -10,9 +10,6 @@ import purescala.Trees._
 import purescala.TreeOps._
 import purescala.TypeTrees._
 
-//my things
-import HyperGraph._
-
 import scala.collection.mutable.{Set => MutableSet}
 
 object ProceedSetOperators {

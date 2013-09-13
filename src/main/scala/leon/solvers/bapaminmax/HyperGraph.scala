@@ -7,9 +7,7 @@ package bapaminmax
 import purescala.Trees._
 import ProceedSetOperators.writeCnstrsForClusters
 
-object HyperGraph{
-class HyperGraph{
-
+class HyperGraph {
       type Node = Set[Expr]
       type Nodes = Set[Node]
       type CommonVars = Set[Expr]
@@ -254,6 +252,4 @@ class HyperGraph{
           And(toAndConstr.toSeq)
         else BooleanLiteral(true)
       }
-
-}
 }
