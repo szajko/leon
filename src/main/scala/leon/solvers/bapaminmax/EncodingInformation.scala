@@ -49,6 +49,7 @@ class EncodingInformation() {
     var mToRegion: Map[String, (Set[Expr],Set[Expr])] = Map.empty
     var regionToBMap: Map[(Set[Expr],Set[Expr]), Set[String]] = Map.empty
     var serialNumberToNumOsMap : Map[Int, Int] = Map.empty
+    var setCollecor : Set[Expr] = Set.empty
 
     
     //HyperGraph

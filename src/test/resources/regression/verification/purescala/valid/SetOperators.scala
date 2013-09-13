@@ -365,16 +365,38 @@ object TestCase {
     )
   } holds 
   
-/*           
-  test("mZigZig8UNSAT"){
-    unitTest("""!( (Max(LeftTree) < value1 ^ value1 < Min(MiddleTree) ^ Max(LeftTree U Value1 U MiddleTree) < Min(Value2) ^ value1 < value2 ^ value2 < Min(RightTree) ^ |LeftTree|>0 ^ |MiddleTree| > 0 ^ |RightTree| > 0^ Value1 = Set(value1) ^ Value2 = Set(value2)) => (Min(LeftTree) < value1 ^ Min(Value1) < Max(MiddleTree U Value2 U RightTree) ^ Max(MiddleTree) < value2 ^ value2 < Min(RightTree)))""", false, "Zig-zig 8")
-  }
-  test("mNegZigZig8SAT"){
-    unitTest("""( (Max(LeftTree) < value1 ^ value1 < Min(MiddleTree) ^ Max(LeftTree U Value1 U MiddleTree) < Min(Value2) ^ value1 < value2 ^ value2 < Min(RightTree) ^ |LeftTree|>0 ^ |MiddleTree| > 0 ^ |RightTree| > 0^ Value1 = Set(value1) ^ Value2 = Set(value2)) => (Min(LeftTree) < value1 ^ Min(Value1) < Max(MiddleTree U Value2 U RightTree) ^ Max(MiddleTree) < value2 ^ value2 < Min(RightTree)))""", true, "Neg Zig-zig_8")
-  }
-*/
+/*  //!( (Max(LeftTree) < value1 ^ value1 < Min(MiddleTree) ^ Max(LeftTree U Value1 U MiddleTree) < Min(Value2) ^ 
+  //value1 < value2 ^ value2 < Min(RightTree) ^ |LeftTree|>0 ^ |MiddleTree| > 0 ^ |RightTree| > 0^ 
+  //Value1 = Set(value1) ^ Value2 = Set(value2)) => 
+  //(Min(LeftTree) < value1 ^ Min(Value1) < Max(MiddleTree U Value2 U RightTree) ^ 
+  //Max(MiddleTree) < value2 ^ value2 < Min(RightTree)))
+  def mZigZig8UNSAT(value1: Int, value2: Int, Value1: Set[Int], Value2: Set[Int], LeftTree: Set[Int], MiddleTree: Set[Int], RightTree: Set[Int]) : Boolean = {
+    require(
+      LeftTree.max < value1 && value1 < MiddleTree.min && (LeftTree ++ Value1 ++ MiddleTree).max < Value2.min &&
+      value1 < value2 && value2 < RightTree.min && LeftTree.size >0 && MiddleTree.size > 0 && RightTree.size > 0 &&
+      Value1 == Set(value1) && Value2 == Set(value2) 
+    )
+      LeftTree.min < value1 && Value1.min < (MiddleTree ++ Value2 ++ RightTree).max && 
+      MiddleTree.max < value2 && value2 < RightTree.min 
+  } holds*/ 
   
-  //!((A U B = C ^ Max(A) < Min(B)) <=> (A subseteq C ^ B = C \ A ^ Max(A) < Min(B)))
+  //((Max(LeftTree) < value1 ^ value1 < Min(MiddleTree) ^ Max(LeftTree U Value1 U MiddleTree) < Min(Value2) ^ 
+  //value1 < value2 ^ value2 < Min(RightTree) ^ |LeftTree|>0 ^ |MiddleTree| > 0 ^ |RightTree| > 0^ 
+  //Value1 = Set(value1) ^ Value2 = Set(value2)) => 
+  //(Min(LeftTree) < value1 ^ Min(Value1) < Max(MiddleTree U Value2 U RightTree) ^ 
+  //Max(MiddleTree) < value2 ^ value2 < Min(RightTree)))
+  def mNegZigZig8SAT(value1: Int, value2: Int, Value1: Set[Int], Value2: Set[Int], LeftTree: Set[Int], MiddleTree: Set[Int], RightTree: Set[Int]) : Boolean = {
+    !(!(
+      LeftTree.max < value1 && value1 < MiddleTree.min && (LeftTree ++ Value1 ++ MiddleTree).max < Value2.min &&
+      value1 < value2 && value2 < RightTree.min && LeftTree.size >0 && MiddleTree.size > 0 && RightTree.size > 0 &&
+      Value1 == Set(value1) && Value2 == Set(value2) 
+      ) ||
+      (LeftTree.min < value1 && Value1.min < (MiddleTree ++ Value2 ++ RightTree).max && 
+      MiddleTree.max < value2 && value2 < RightTree.min)
+    )
+  } holds 
+    
+/*  //!((A U B = C ^ Max(A) < Min(B)) <=> (A subseteq C ^ B = C \ A ^ Max(A) < Min(B)))
   def mEqPart9UNSAT(elem: Int,  A: Set[Int], B: Set[Int], C: Set[Int]) : Boolean = {
     (A ++ B == C && A.max < B.min) == (A.subsetOf(C) && B == C -- A && A.max < B.min)
   } holds
@@ -398,5 +420,61 @@ object TestCase {
     )
       x < y
   } holds 
+  
+  def newVC1SAT(x: Int, size: Int, Content: Set[Int]): Boolean = { 
+    require (
+      ! Content.contains(x) &&
+      size == Content.size
+    )
+      (size == 0) == (Content == Set.empty[Int])
+  } holds
+  
+  def newVC2SAT(x: Int, size: Int, Content: Set[Int]): Boolean = { 
+    require (
+      ! Content.contains(x) &&
+      size == Content.size
+    )
+      size + 1 == (Set(x) ++ Content).size
+  } holds
+  
+  def newVC3SAT(x: Int, size: Int, size1: Int,  Content: Set[Int]): Boolean = { 
+    require (
+      size == Content.size &&
+      size1 == (Set(x) ++ Content).size
+    )
+      size1 <= size + 1
+  } holds
+  
+  def newVC4SAT(x1: Int, x2: Int, x3: Int, Content: Set[Int], Alloc: Set[Int]): Boolean = { 
+    require (
+      Content.subsetOf(Alloc) &&
+      ! Alloc.contains(x1) && 
+      ! (Alloc ++ Set(x1) ).contains(x2) && 
+      ! (Alloc ++ Set(x1) ++ Set(x2) ).contains(x3)
+    )
+      (Content ++ Set(x1) ++ Set(x2) ++ Set(x3) ).size == Content.size + 3
+  } holds
+  
+  def newVC5SAT(x1: Int, x2: Int, x3: Int, Content: Set[Int], Alloc0: Set[Int], Alloc1: Set[Int], Alloc2: Set[Int]): Boolean = { 
+    require (
+      Content.subsetOf(Alloc0) &&
+      ! Alloc0.contains(x1) &&
+      (Alloc0 ++ Set(x1)).subsetOf(Alloc1) &&
+      ! Alloc1.contains(x2) &&
+      (Alloc1 ++ Set(x2) ).subsetOf(Alloc2) &&
+      ! Alloc2.contains(x3)
+    )
+      (Content ++ Set(x1) ++ Set(x2) ++ Set(x3) ).size == Content.size + 3
+  } holds
+  
+  def newVC6SAT(x: Int, C: Set[Int], C1: Set[Int], Alloc0: Set[Int], Alloc1: Set[Int], Alloc2: Set[Int]): Boolean = { 
+    require (
+      C.contains(x) && 
+      C1 == C -- Set(x) &&
+      (Alloc1 -- Alloc0).size <= 1 &&
+      (Alloc2 -- Alloc1).size <= C1.size
+    )
+      (Alloc2 -- Alloc0).size <= C.size
+  } holds */
   
 }

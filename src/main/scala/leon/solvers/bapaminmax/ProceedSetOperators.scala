@@ -45,6 +45,7 @@ object ProceedSetOperators {
       regionToBMap = Map.empty
       inf = getVar("inf")
       mInf= getVar("mInf")
+      setCollecor = Set.empty
 
       //lift all constant sets that are not variables
       //and eliminate the following operators:
@@ -157,7 +158,7 @@ object ProceedSetOperators {
        case SetComplement(SetUnion(l,r)) => rec(SetIntersection(SetComplement(l),SetComplement(r)))
        case SetComplement(SetIntersection(l,r)) => rec(SetUnion(SetComplement(l),SetComplement(r)))
        case SetComplement(SetDifference(l,r)) => rec(SetComplement(SetIntersection(l, SetComplement(r))))
-       case _ => t
+       case _ => setCollecor += t; t
      }
      //three relevant operators: card, min, max
      def findOps(et: Expr): Unit = et match {
@@ -1627,6 +1628,42 @@ object ProceedSetOperators {
     
   
   }
+  
+  
+   //mapping all variables that are defined as Expr
+  //var stringToExpr : Map[String, Expr] = Map.empty
+
+    //for statistics
+    def get1SCVLine()(implicit meta : EncodingInformation): String = {
+      import meta._
+      
+      val sngNum : String = sngSet.size.toString + ";"
+      val setNum : String = setCollecor.size.toString + ";"
+      val finitSetNum : String = constantSets.size.toString + ";"
+      val cardConstrNum : String = cOrig.size.toString + ";"
+      val minMaxConstrNum : String = (mOrig.size + MOrig.size).toString + ";"
+      val clusterNum : String = globalClusts.size.toString + ";"
+      val minMaxClustNum : String = globalMinMaxIndicies.size.toString + ";"
+      var vennRegNum : Long = 0
+      globalClusts.foreach(a =>{ vennRegNum += pow2(a.size) - 1 })
+      val componentNum : String = G.components.size.toString + ";"
+      //in case of integers: k#, M#, m#, E#, c#, o#, iB#, im/iM#-> G#
+      //in case of booleans: A#, B#
+      val kNum = stringToExpr.filter(a=> (a._1.startsWith("k#") )).size.toString + ";"
+      val mMNum = stringToExpr.filter(a=> ((a._1.startsWith("m#")) || (a._1.startsWith("M#")))).size.toString + ";"
+      val ENum = stringToExpr.filter(a=> (a._1.startsWith("E#") )).size.toString + ";"
+      val ANum = stringToExpr.filter(a=> (a._1.startsWith("A#") )).size.toString + ";"
+      val BNum = stringToExpr.filter(a=> (a._1.startsWith("B#") )).size.toString + ";"
+      val cNum = stringToExpr.filter(a=> (a._1.startsWith("c#") )).size.toString + ";"
+      val oNum = stringToExpr.filter(a=> (a._1.startsWith("o#") )).size.toString + ";"
+      
+      
+      val data1 : String = sngNum + setNum + finitSetNum + cardConstrNum + minMaxConstrNum + clusterNum + minMaxClustNum 
+      val data2 : String = vennRegNum.toString + ";" + componentNum 
+      val data3 :String = kNum + mMNum + ENum + ANum + BNum + cNum + oNum
+      data1 + data2 + data3
+    }
+
   
   
 }
