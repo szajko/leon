@@ -1290,7 +1290,7 @@ object ProceedSetOperators {
     var usedElems : Set[Int] = Set.empty
     var readySets : Set[Expr] = Set.empty
     var readyClusterIndices: Set[Int] = Set.empty
-    var globalSngSet : Set[Int] = Set.empty
+    //var globalSngSet : Set[Int] = Set.empty
     
     
     //insert singletons into the map
@@ -1312,7 +1312,7 @@ object ProceedSetOperators {
               eName = eName.dropRight(1)
               //println("addElement " + set + "   " + eName)
               val element : Int = getValueInt(eName)
-              globalSngSet += element
+              //globalSngSet += element
               addElement(set, element)
             })
           }
@@ -1328,7 +1328,7 @@ object ProceedSetOperators {
             eName = eName.dropRight(1)
             val element : Int = getValueInt(eName)
             //get the values of all sngs....
-            globalSngSet += element
+            //globalSngSet += element
           }
         }
       }
@@ -1469,6 +1469,25 @@ object ProceedSetOperators {
             //println("regionElements: " + regionElements)
             //println("globalSngSet: " + globalSngSet)
             //println("sngSet: " + sngSet)
+            var globalSngSet : Set[Int] = Set.empty
+            regionToBMap.foreach(someB =>{
+              if (someB._1._1 == containing && someB._1._2 == nonContaining){
+                someB._2.foreach(b=>{
+                  var eName : String = (b.tail).tail
+                  while ( ! eName.endsWith("#")){
+                    eName = eName.dropRight(1)
+                  }
+                  eName = eName.dropRight(1)
+                  while ( ! eName.endsWith("#")){
+                    eName = eName.dropRight(1)
+                  }
+                  eName = eName.dropRight(1)
+                  //println("addElement " + set + "   " + eName)
+                  val element : Int = getValueInt(eName)
+                 globalSngSet += element
+               })
+              }
+            })
             val elem : Int = (regionElements -- globalSngSet).head
             regionElements -= elem
             (coNonReadies._1).foreach(b=> addElement(b, elem))

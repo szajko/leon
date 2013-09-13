@@ -346,7 +346,7 @@ object TestCase {
     )
   } holds */
   
-  //!((Set = Elem U Rest ^ elem >= Max(Rest)) => Max(Set) = elem) ^ Elem = Set(elem)
+/*  //!((Set = Elem U Rest ^ elem >= Max(Rest)) => Max(Set) = elem) ^ Elem = Set(elem)
   def mUneqPart7UNSAT(elem: Int,  mySet: Set[Int], ElemSet: Set[Int], Rest: Set[Int]) : Boolean = {
     require(
       mySet == ElemSet ++ Rest &&
@@ -378,6 +378,17 @@ object TestCase {
     )
       LeftTree.min < value1 && Value1.min < (MiddleTree ++ Value2 ++ RightTree).max && 
       MiddleTree.max < value2 && value2 < RightTree.min 
+  } holds*/ 
+  
+  def mNegZigZig8SAT(value1: Int, value2: Int, Value1: Set[Int], Value2: Set[Int], LeftTree: Set[Int], MiddleTree: Set[Int], RightTree: Set[Int]) : Boolean = {
+    !(!(
+      LeftTree.max < value1  && value1 < MiddleTree.min && (LeftTree ++ Value1 ++ MiddleTree).max < Value2.min &&
+      value1 < value2 && value2 < RightTree.min && LeftTree.size >0 && MiddleTree.size > 0 && RightTree.size > 0 &&
+      Value1 == Set(value1) && Value2 == Set(value2) 
+      ) ||
+      (LeftTree.min < value1 && Value1.min < (MiddleTree ++ Value2 ++ RightTree).max
+      && MiddleTree.max < value2 && value2 < RightTree.min)
+    )
   } holds 
   
   //((Max(LeftTree) < value1 ^ value1 < Min(MiddleTree) ^ Max(LeftTree U Value1 U MiddleTree) < Min(Value2) ^ 
@@ -385,7 +396,7 @@ object TestCase {
   //Value1 = Set(value1) ^ Value2 = Set(value2)) => 
   //(Min(LeftTree) < value1 ^ Min(Value1) < Max(MiddleTree U Value2 U RightTree) ^ 
   //Max(MiddleTree) < value2 ^ value2 < Min(RightTree)))
-  def mNegZigZig8SAT(value1: Int, value2: Int, Value1: Set[Int], Value2: Set[Int], LeftTree: Set[Int], MiddleTree: Set[Int], RightTree: Set[Int]) : Boolean = {
+/*  def mNegZigZig8SAT(value1: Int, value2: Int, Value1: Set[Int], Value2: Set[Int], LeftTree: Set[Int], MiddleTree: Set[Int], RightTree: Set[Int]) : Boolean = {
     !(!(
       LeftTree.max < value1 && value1 < MiddleTree.min && (LeftTree ++ Value1 ++ MiddleTree).max < Value2.min &&
       value1 < value2 && value2 < RightTree.min && LeftTree.size >0 && MiddleTree.size > 0 && RightTree.size > 0 &&
@@ -394,9 +405,9 @@ object TestCase {
       (LeftTree.min < value1 && Value1.min < (MiddleTree ++ Value2 ++ RightTree).max && 
       MiddleTree.max < value2 && value2 < RightTree.min)
     )
-  } holds 
+  } holds */
     
-  //!((A U B = C ^ Max(A) < Min(B)) <=> (A subseteq C ^ B = C \ A ^ Max(A) < Min(B)))
+/*  //!((A U B = C ^ Max(A) < Min(B)) <=> (A subseteq C ^ B = C \ A ^ Max(A) < Min(B)))
   def mEqPart9UNSAT(elem: Int,  A: Set[Int], B: Set[Int], C: Set[Int]) : Boolean = {
     (A ++ B == C && A.max < B.min) == (A.subsetOf(C) && B == C -- A && A.max < B.min)
   } holds
@@ -475,6 +486,6 @@ object TestCase {
       (Alloc2 -- Alloc1).size <= C1.size
     )
       (Alloc2 -- Alloc0).size <= C.size
-  } holds
+  } holds */
   
 }
