@@ -21,8 +21,20 @@ class BAPAMinMaxSolverFactory[S <: Solver](sf : SolverFactory[S]) extends Rewrit
   }
 
   def reconstructModel(model : Map[Identifier,Expr], meta : EncodingInformation) : Map[Identifier,Expr] = {
-    // FIXME : REMOVE
-    ProceedSetOperators.getCounterExample(model)(meta)
-    model
+    val modelForSomeSets : Map[Expr,Set[Int]] = ProceedSetOperators.getCounterExample(model)(meta)
+    val asExprModel : Map[Expr,Expr] = modelForSomeSets.mapValues { is =>
+      FiniteSet(is.map(IntLiteral(_)).toSeq).setType(SetType(Int32Type))
+    }
+
+    val originalVars : Set[Identifier] = meta.originalFreeVariables
+
+    val withModel : Set[(Identifier,Option[Expr])] = originalVars.map { id =>
+      val fromRealModel : Option[Expr] = asExprModel.get(Variable(id))
+      val fromEncModel : Option[Expr]  = model.get(id)
+      val best : Option[Expr] = fromRealModel orElse fromEncModel
+      (id -> best)
+    }
+
+    withModel.filter(_._2.isDefined).toMap.mapValues(_.get)
   }
 }

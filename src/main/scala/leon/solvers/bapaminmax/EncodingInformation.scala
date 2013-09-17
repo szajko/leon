@@ -11,6 +11,7 @@ import purescala.TreeOps._
 import purescala.TypeTrees._
 
 class EncodingInformation() {
+    var originalFreeVariables : Set[Identifier] = Set.empty
     //contains all "in" operators, all of them starts with in
     var elementsOf : Set[Expr] = Set.empty
     //contains all constant sets

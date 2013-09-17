@@ -17,6 +17,7 @@ object ProceedSetOperators {
       import meta._
 
       //initialization
+      originalFreeVariables = Set.empty
       elementsOf = Set.empty
       constantSets = Set.empty
       sideConstraints = Set.empty
@@ -1271,7 +1272,7 @@ object ProceedSetOperators {
   
   //-------------------------------------------------------------------
   //build sets as counterexample 
-  def getCounterExample(counterexample : Map[Identifier,Expr])(implicit meta : EncodingInformation) {
+  def getCounterExample(counterexample : Map[Identifier,Expr])(implicit meta : EncodingInformation) : Map[Expr,Set[Int]] = {
     import meta._
 
     //build a map for the needed sets
@@ -1626,7 +1627,7 @@ object ProceedSetOperators {
     
     println("The solution is: " + solu)
     
-  
+    solu 
   }
   
   

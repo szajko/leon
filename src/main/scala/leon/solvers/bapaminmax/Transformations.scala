@@ -75,6 +75,7 @@ object Transformations {
     
     vc = And(setCnsrt, vc)
     
+    meta.originalFreeVariables = variablesOf(expression)
     (vc, meta)
   }
 }

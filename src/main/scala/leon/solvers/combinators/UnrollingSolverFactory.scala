@@ -26,7 +26,9 @@ class UnrollingSolverFactory[S <: Solver](val sf : SolverFactory[S]) extends Sol
 
   def getNewSolver() : Solver = {
     new Solver {
-      val underlying : Solver = sf.getNewSolver()
+      private val underlying : Solver = sf.getNewSolver()
+
+      private var theConstraint : Option[Expr] = None
 
       private def fail(because : String) : Nothing = {
         throw new Exception("Not supported in UnrollingSolvers : " + because)
@@ -36,7 +38,10 @@ class UnrollingSolverFactory[S <: Solver](val sf : SolverFactory[S]) extends Sol
       def pop(lvl : Int = 1) : Unit = fail("pop(lvl)")
       
       def assertCnstr(expression : Expr) {
-        underlying.assertCnstr(expression)
+        if(!theConstraint.isEmpty) {
+          fail("Multiple assertCnstr")
+        }
+        theConstraint = Some(expression)
       }
 
       def interrupt() {
@@ -47,8 +52,11 @@ class UnrollingSolverFactory[S <: Solver](val sf : SolverFactory[S]) extends Sol
         underlying.recoverInterrupt()
       }
 
-      def check : Option[Boolean] = {
+      def check : Option[Boolean] = theConstraint.map { expr =>
+        underlying.assertCnstr(expr)
         underlying.check
+      } getOrElse {
+        Some(true)
       }
 
       def checkAssumptions(assumptions : Set[Expr]) : Option[Boolean] = {
