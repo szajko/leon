@@ -71,11 +71,35 @@ class UnrollingSolverFactory[S <: Solver](val sf : SolverFactory[S]) extends Sol
         var allBlockers : Map[Identifier,Set[FunctionInvocation]] = Map.empty
 
         def fullOpenExpr : Expr = {
-          And(Variable(aVar), And(allClauses.reverse))
+          // And(Variable(aVar), And(allClauses.reverse))
+          // Let's help the poor underlying guy a little bit...
+          // Note that I keep aVar around, because it may negate one of the blockers, and we can't miss that!
+          And(Variable(aVar), replace(Map(Variable(aVar) -> BooleanLiteral(true)), And(allClauses.reverse)))
         }
 
         def fullClosedExpr : Expr = {
-          And(fullOpenExpr, And(allBlockers.toSeq.map(p => Not(Variable(p._1)))))
+          val blockedVars : Seq[Expr] = allBlockers.toSeq.map(p => Variable(p._1))
+
+          And(
+            replace(blockedVars.map(v => (v -> BooleanLiteral(false))).toMap, fullOpenExpr),
+            And(blockedVars.map(Not(_)))
+          )
+        }
+
+        def unrollOneStep() {
+          val blockersBefore = allBlockers
+
+          var newClauses : List[Seq[Expr]] = Nil
+          var newBlockers : Map[Identifier,Set[FunctionInvocation]] = Map.empty
+
+          for(blocker <- allBlockers.keySet; FunctionInvocation(funDef, args) <- allBlockers(blocker)) {
+            val (nc, nb) = getTemplate(funDef).instantiate(blocker, args)
+            newClauses = nc :: newClauses
+            newBlockers = newBlockers ++ nb
+          }
+
+          allClauses = newClauses.flatten ++ allClauses
+          allBlockers = newBlockers
         }
 
         val (nc, nb) = template.instantiate(aVar, template.funDef.args.map(a => Variable(a.id)))
@@ -89,25 +113,38 @@ class UnrollingSolverFactory[S <: Solver](val sf : SolverFactory[S]) extends Sol
 
         // We're now past the initial step.
         while(!done && unrollingCount < MAXUNROLLINGS) {
+          info("At lvl : " + unrollingCount)
           val closed : Expr = fullClosedExpr
+
+          info("Going for SAT with this:\n" + closed)
+
           simpleSolver.solveSAT(closed) match {
             case (Some(false), _) =>
-              simpleSolver.solveSAT(fullOpenExpr) match {
+              val open = fullOpenExpr
+              info("Was UNSAT... Going for UNSAT with this:\n" + open)
+              simpleSolver.solveSAT(open) match {
                 case (Some(false), _) =>
+                  info("Was UNSAT... Done !")
                   done = true
                   result = Some(false)
 
                 case _ =>
-                  fail("must unroll")
+                  info("Was SAT or UNKNOWN. Let's unroll !")
+                  unrollingCount += 1
+                  unrollOneStep()
               }
 
             case (Some(true), model) =>
+              info("WAS SAT ! We're DONE !")
               done = true
               result = Some(true)
               theModel = Some(model)
 
-            case (None, _) =>
-              fail("unknown in underlying")
+            case (None, model) =>
+              info("WAS UNKNOWN ! We're DONE !")
+              done = true
+              result = Some(true)
+              theModel = Some(model)
           }
         }
         result
