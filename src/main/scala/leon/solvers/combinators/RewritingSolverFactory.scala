@@ -44,6 +44,7 @@ abstract class RewritingSolverFactory[S <: Solver,T](val sf : SolverFactory[S]) 
       private var storedMeta : List[T] = Nil
 
       def assertCnstr(expression : Expr) {
+        context.reporter.info("Asked to solve this in BAPA<:\n" + expression) 
         val (rewritten, meta) = rewriteCnstr(expression)
         storedMeta = meta :: storedMeta
         underlying.assertCnstr(rewritten)

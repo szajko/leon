@@ -57,25 +57,42 @@ class DNFSolverFactory[S <: Solver](val sf : SolverFactory[S]) extends SolverFac
 
         def info(msg : String) { reporter.info("In " + thisFactory.name + ": " + msg) }
         
-        info("Before NNF:\n" + expr)
+        // info("Before NNF:\n" + expr)
 
         val nnfed = nnf(expr, false)
 
-        info("After NNF:\n" + nnfed)
+        // info("After NNF:\n" + nnfed)
 
-        simpleSolver.solveSAT(nnfed) match {
-          case (Some(false), _) =>
-            result = Some(false)
+        val dnfed = dnf(nnfed)
 
-          case (Some(true), m) =>
-            result = Some(true)
-            theModel = Some(m)
+        // info("After DNF:\n" + dnfed)
 
-          case (None, m) =>
-            result = None
-            theModel = Some(m)
-         }
-         result 
+        val candidates : Seq[Expr] = dnfed match {
+          case Or(es) => es
+          case elze => Seq(elze)
+        }
+
+        info("# conjuncts : " + candidates.size)
+
+        var done : Boolean = false
+
+        for(candidate <- candidates if !done) {
+          simpleSolver.solveSAT(candidate) match {
+            case (Some(false), _) =>
+              result = Some(false)
+
+            case (Some(true), m) =>
+              result = Some(true)
+              theModel = Some(m)
+              done = true
+
+            case (None, m) =>
+              result = None
+              theModel = Some(m)
+              done = true
+           }
+        }
+        result
       } getOrElse {
         Some(true)
       }
@@ -111,5 +128,46 @@ class DNFSolverFactory[S <: Solver](val sf : SolverFactory[S]) extends SolverFac
     case GreaterEquals(l,r) if flip => LessThan(l,r)
     case elze if flip      => Not(elze)
     case elze              => elze
+  }
+
+  // fun pushC (And(p,Or(q,r))) = Or(pushC(And(p,q)),pushC(And(p,r)))
+  //   | pushC (And(Or(q,r),p)) = Or(pushC(And(p,q)),pushC(And(p,r)))
+  //   | pushC (And(p,q))       = And(pushC(p),pushC(q))
+  //   | pushC (Literal(l))     = Literal(l)
+  //   | pushC (Or(p,q))        = Or(pushC(p),pushC(q))
+  
+  private def dnf(expr : Expr) : Expr = expr match {
+    case And(es) =>
+      val (ors, lits) = es.partition(_.isInstanceOf[Or])
+      if(!ors.isEmpty) {
+        val orHead = ors.head.asInstanceOf[Or]
+        val orTail = ors.tail
+        Or(orHead.exprs.map(oe => dnf(And(filterObvious(lits ++ (oe +: orTail))))))
+      } else {
+        expr
+      }
+
+    case Or(es) =>
+      Or(es.map(dnf(_)))
+
+    case _ => expr
+  }
+
+  private def filterObvious(exprs : Seq[Expr]) : Seq[Expr] = {
+    var pos : List[Identifier] = Nil
+    var neg : List[Identifier] = Nil
+
+    for(e <- exprs) e match {
+      case Variable(id)      => pos = id :: pos
+      case Not(Variable(id)) => neg = id :: neg
+      case _ => ;
+    }
+
+    val both : Set[Identifier] = pos.toSet intersect neg.toSet
+    if(!both.isEmpty) {
+      Seq(BooleanLiteral(false)) 
+    } else {
+      exprs
+    }
   }
 }
