@@ -158,10 +158,12 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
     // How could anything possibly go wrong?
     lazy val bapa = 
       new UnrollingSolverFactory(
-        new BAPAMinMaxSolverFactory(
-          new UninterpretedZ3SolverFactory(ctx, program)
+        new DNFSolverFactory(
+          new BAPAMinMaxSolverFactory(
+            new UninterpretedZ3SolverFactory(ctx, program)
+          )
         )
-    )
+      )
 
     val baseSolvers : Seq[SolverFactory[Solver]] = {
       if(useBAPA) {

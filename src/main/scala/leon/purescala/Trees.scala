@@ -318,6 +318,7 @@ object Trees {
   object Not {
     def apply(expr : Expr) : Expr = expr match {
       case Not(e) => e
+      case BooleanLiteral(v) => BooleanLiteral(!v)
       case _ => new Not(expr)
     }
 
