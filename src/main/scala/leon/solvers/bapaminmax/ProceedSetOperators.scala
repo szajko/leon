@@ -52,7 +52,7 @@ object ProceedSetOperators {
       //and eliminate the following operators:
       //seteq, subset, in, constantSets
       e.foreach(tp => eliminateOperators(tp))
-      println("-- sideConstraints -- " + sideConstraints)
+      //println("-- sideConstraints -- " + sideConstraints)
       sngArray = sngSet.toArray
       val  newE : Set[Expr] = e | sideConstraints
       
@@ -60,21 +60,21 @@ object ProceedSetOperators {
       //only card, min and max operators are remained on diff, intersec, union, compl of some sets
       newE.foreach(tp => deMorganCollectDep(tp))
       if (mDep != Set.empty) isMinMax = true
-      println("-- cDep -- " + cDep)
-      println("-- mDep -- " + mDep)
+      // println("-- cDep -- " + cDep)
+      // println("-- mDep -- " + mDep)
       
       //creating clusters
       val clusters: (Array[Set[Expr]], Set[Int]) = createClusters(cDep, mDep)
       globalClusts = clusters._1
-      println("--- clusters----" + globalClusts.toSet)
+      // println("--- clusters----" + globalClusts.toSet)
       globalMinMaxIndicies = clusters._2
-      println("Min-max indeces of the clusters: " + globalMinMaxIndicies)
+      //println("Min-max indeces of the clusters: " + globalMinMaxIndicies)
       //produces finalClusters
       clsToArray(clusters._1)
-      println("Singletons Array:" + sngArray.toSet)
+      //println("Singletons Array:" + sngArray.toSet)
       
       val cardCnstrs: Expr = G.getEqualities("k#", Set.empty)
-      println("Cardinality constraints:\n" + cardCnstrs )
+      //println("Cardinality constraints:\n" + cardCnstrs )
       val substituteCnstr : Expr = subsAbsMinMax()
       
       val sngCnstr : Expr = getTheSevenTypeCnstr()
@@ -87,8 +87,8 @@ object ProceedSetOperators {
       //bridges.foreach{a => sngs += a._2}
       
       //println("sngCnstr: " + sngCnstr)
-      println("substituteCnstr: " + substituteCnstr)
-      println("cardCnstr: " + cardCnstrs)
+      //println("substituteCnstr: " + substituteCnstr)
+      //println("cardCnstr: " + cardCnstrs)
       //println("And(sideConstraints.toSeq: " + And(sideConstraints.toSeq))
       
       val infCnstr : Expr = And(GreaterEquals(inf, IntLiteral(1000)),LessEquals(mInf, IntLiteral(-1000)))
@@ -1625,7 +1625,7 @@ object ProceedSetOperators {
     fillMinMaxNodes()
     fillHyperGraph()
     
-    println("The solution is: " + solu)
+    //println("The solution is: " + solu)
     
     solu 
   }

@@ -66,8 +66,8 @@ object Transformations {
     if (! setConstraints.isEmpty){
       //println(woletvc)
     
-      println("----------------------The collected set expresssiona are:----------------------")
-      println(setConstraints)
+      // println("----------------------The collected set expresssiona are:----------------------")
+      // println(setConstraints)
 
       setCnsrt = proceedSets(setConstraints)(meta)
       //println("All added constraints------------------------" + setCnsrt)

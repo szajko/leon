@@ -12,6 +12,7 @@ import purescala.TypeTrees._
 import solvers._
 import solvers.z3._
 import solvers.bapaminmax._
+import solvers.combinators._
 
 import scala.collection.mutable.{Set => MutableSet}
 
@@ -154,7 +155,13 @@ object AnalysisPhase extends LeonPhase[Program,VerificationReport] {
 
     lazy val fairZ3 = new FairZ3SolverFactory(ctx, program)
 
-    lazy val bapa = new BAPAMinMaxSolverFactory(new UninterpretedZ3SolverFactory(ctx, program))
+    // How could anything possibly go wrong?
+    lazy val bapa = 
+      new UnrollingSolverFactory(
+        new BAPAMinMaxSolverFactory(
+          new UninterpretedZ3SolverFactory(ctx, program)
+        )
+    )
 
     val baseSolvers : Seq[SolverFactory[Solver]] = {
       if(useBAPA) {
